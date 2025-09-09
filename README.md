@@ -5,7 +5,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/confluence-content-parser)](https://pypi.org/project/confluence-content-parser/)
 [![Python versions](https://img.shields.io/pypi/pyversions/confluence-content-parser)](https://pypi.org/project/confluence-content-parser/)
 [![CI](https://github.com/Unificon/confluence-content-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/Unificon/confluence-content-parser/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/codecov/c/gh/Unificon/confluence-content-parser?label=coverage)](https://app.codecov.io/gh/Unificon/confluence-content-parser)
+[![Coverage](https://codecov.io/github/Unificon/confluence-content-parser/graph/badge.svg?token=NRLLDJUCWG)](https://codecov.io/github/Unificon/confluence-content-parser)
 [![License](https://img.shields.io/github/license/Unificon/confluence-content-parser)](LICENSE)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
