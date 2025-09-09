@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
@@ -92,12 +93,12 @@ class ContentElement(BaseModel):
     children_display_macro: ChildrenDisplayMacro | None = None
     attachments_macro: AttachmentsMacro | None = None
 
-    def iter(self):
+    def iter(self) -> Iterator[ContentElement]:
         yield self
         for child in self.children:
             yield from child.iter()
 
-    def find_all(self, *, type: str | None = None, kind: str | None = None) -> list["ContentElement"]:
+    def find_all(self, *, type: str | None = None, kind: str | None = None) -> list[ContentElement]:
         results: list[ContentElement] = []
         for el in self.iter():
             if (type is None or el.type == type) and (kind is None or el.kind == kind):
@@ -116,9 +117,9 @@ class ContentElement(BaseModel):
 
     @property
     def kind(self) -> str | None:
-        if self.type in {"h1","h2","h3","h4","h5","h6"}:
+        if self.type in {"h1", "h2", "h3", "h4", "h5", "h6"}:
             return "heading"
-        if self.type in {"ul","ol"}:
+        if self.type in {"ul", "ol"}:
             return "list"
         if self.type == "li":
             return "list_item"

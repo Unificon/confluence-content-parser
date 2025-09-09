@@ -6,7 +6,7 @@ def main() -> None:
 
     content = """
     <root>
-      <ac:structured-macro ac:name="xyz"/>  
+      <ac:structured-macro ac:name="xyz"/>
       <ac:link><ri:url ri:value="https://example.com"/></ac:link>
       <ac:link><ri:page ri:space-key="FOO" ri:content-title="Bar" ri:version-at-save="2"/></ac:link>
     </root>

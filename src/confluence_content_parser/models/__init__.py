@@ -14,8 +14,30 @@ from .extensions import (
     ViewFileMacro,
 )
 from .layout import LayoutCell, LayoutSection
-from .links import AttachmentReference, Link, PageReference, UrlReference, UserReference, BlogPostReference, SpaceReference, ContentEntityReference, ShortcutReference
-from .macros import CodeBlock, JiraMacro, NotificationMacro, StructuredMacro, AnchorMacro, ExcerptMacro, ExcerptIncludeMacro, PagePropertiesMacro, PagePropertiesReportMacro, ChildrenDisplayMacro, AttachmentsMacro
+from .links import (
+    AttachmentReference,
+    BlogPostReference,
+    ContentEntityReference,
+    Link,
+    PageReference,
+    ShortcutReference,
+    SpaceReference,
+    UrlReference,
+    UserReference,
+)
+from .macros import (
+    AnchorMacro,
+    AttachmentsMacro,
+    ChildrenDisplayMacro,
+    CodeBlock,
+    ExcerptIncludeMacro,
+    ExcerptMacro,
+    JiraMacro,
+    NotificationMacro,
+    PagePropertiesMacro,
+    PagePropertiesReportMacro,
+    StructuredMacro,
+)
 from .media import Image
 from .metadata import DateElement, Status
 from .misc import Emoticon, InlineComment, Placeholder

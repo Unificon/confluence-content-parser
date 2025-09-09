@@ -54,7 +54,7 @@ class ExcerptMacro(BaseModel):
     hidden: bool = False
     atlassian_macro_output_type: str | None = Field(None, alias="ac:macro-output-type")
     body: str = ""
-    children: list["ContentElement"] = Field(default_factory=list)
+    children: list[ContentElement] = Field(default_factory=list)
     model_config = {"populate_by_name": True}
 
 
@@ -66,7 +66,7 @@ class PagePropertiesMacro(BaseModel):
     id: str | None = None
     hidden: bool = False
     body: str = ""
-    children: list["ContentElement"] = Field(default_factory=list)
+    children: list[ContentElement] = Field(default_factory=list)
 
 
 class PagePropertiesReportMacro(BaseModel):

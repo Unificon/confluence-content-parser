@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "lxml>=6.0.1",
     "pydantic>=2.11.7",
+    "types-lxml>=2025.8.25",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -30,12 +31,18 @@ line-length = 120
 target-version = ['py312']
 
 [tool.ruff]
-select = ["E", "F", "I", "N", "W", "UP"]
-ignore = []
 line-length = 120
 target-version = "py312"
 
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"examples/**.py" = ["E501"]
+"tests/**.py" = ["E501"]
+
 [tool.mypy]
+plugins = ["pydantic.mypy"]
 python_version = "3.12"
 strict = true
 warn_return_any = true

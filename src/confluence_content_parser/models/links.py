@@ -88,27 +88,41 @@ class Link(BaseModel):
     def canonical_uri(self) -> str | None:
         match self.kind:
             case "user":
-                if self.user_reference.account_id:
-                    return f"user://{self.user_reference.account_id}"
+                ref = self.user_reference
+                if ref and ref.account_id:
+                    return f"user://{ref.account_id}"
             case "page":
-                ct = self.page_reference.content_title
-                sk = self.page_reference.space_key or ""
-                if self.page_reference.version_at_save is not None:
-                    return f"page://{sk}/{ct}@v{self.page_reference.version_at_save}"
-                return f"page://{sk}/{ct}"
+                pr = self.page_reference
+                if pr is not None:
+                    ct = pr.content_title
+                    sk = pr.space_key or ""
+                    if pr.version_at_save is not None:
+                        return f"page://{sk}/{ct}@v{pr.version_at_save}"
+                    return f"page://{sk}/{ct}"
             case "blog_post":
                 bp = self.blog_post_reference
-                return f"blog://{bp.space_key or ''}/{bp.content_title}@{bp.posting_day or ''}"
+                if bp is not None:
+                    return f"blog://{bp.space_key or ''}/{bp.content_title}@{bp.posting_day or ''}"
             case "space":
-                return f"space://{self.space_reference.space_key}"
+                space_ref = self.space_reference
+                if space_ref is not None:
+                    return f"space://{space_ref.space_key}"
             case "attachment":
                 ar = self.attachment_reference
-                ver = f"@v{ar.version_at_save}" if ar.version_at_save is not None else ""
-                return f"attach://{ar.filename}{ver}"
+                if ar is not None:
+                    ver = f"@v{ar.version_at_save}" if ar.version_at_save is not None else ""
+                    return f"attach://{ar.filename}{ver}"
             case "content_entity":
-                return f"contentid://{self.content_entity_reference.content_id}"
+                cer = self.content_entity_reference
+                if cer is not None:
+                    return f"contentid://{cer.content_id}"
             case "shortcut":
-                return f"shortcut://{self.shortcut_reference.key}/{self.shortcut_reference.parameter}"
+                shortcut_ref = self.shortcut_reference
+                if shortcut_ref is not None:
+                    return f"shortcut://{shortcut_ref.key}/{shortcut_ref.parameter}"
             case "url":
-                return self.url_reference.value if self.url_reference else (self.url or None)
+                if self.url_reference is not None:
+                    return self.url_reference.value
+                if self.url is not None:
+                    return self.url
         return None

@@ -1127,8 +1127,7 @@ def hello():
         uris = [e.link.canonical_uri for e in links]
         assert "blog://FOO/First Post@2012/01/30" in uris
         assert "space://TST" in uris
-        # unknown child processed without error
-        assert any(l.link.kind is None or l.link.kind in {"blog_post","space"} for l in links)
+        assert any(lce.link.kind is None or lce.link.kind in {"blog_post","space"} for lce in links)
 
     def test_link_page_with_version_at_save(self):
         content = '''<ac:link><ri:page ri:space-key="FOO" ri:content-title="Bar" ri:version-at-save="7"/></ac:link>'''
