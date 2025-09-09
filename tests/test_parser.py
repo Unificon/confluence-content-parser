@@ -1033,6 +1033,8 @@ def hello():
         assert dl.decision_list.local_id == "dec-2"
         # Items list may be empty without fallback li entries
         assert isinstance(dl.decision_list.items, list)
+        # Access kind to cover property branch
+        assert dl.kind == "decision_list"
 
     def test_parse_adf_node_decision_list_with_direct_li(self):
         """Cover li extraction inside decision-list branch to hit lines 813-815."""
@@ -1249,6 +1251,26 @@ def hello():
         # adf_fallback (via direct)
         doc = self.parser.parse('<ac:adf-fallback>f</ac:adf-fallback>')
         assert doc.content[0].kind == "adf_fallback"
+
+        # adf_extension
+        doc = self.parser.parse('<ac:adf-extension/>')
+        assert doc.content[0].kind == "adf_extension"
+
+        # decision_list, task, task_list, task_list_container
+        doc = self.parser.parse('<ac:task ac:local-id="1" ac:task-id="1"/>')
+        assert doc.content[0].kind == "task"
+        doc = self.parser.parse('<ac:task-list/>')
+        assert doc.content[0].kind == "task_list_container"
+        doc = self.parser.parse('<ac:structured-macro ac:name="task-list" ac:macro-id="t1"><ac:task-item ac:local-id="i" ac:task-id="t"/></ac:structured-macro>')
+        assert doc.content[0].kind in {"task_list","macro"}
+
+        # emoticon
+        doc = self.parser.parse('<ac:emoticon ac:name="blue-star"/>')
+        assert doc.content[0].kind == "emoticon"
+
+        # blockquote
+        doc = self.parser.parse('<blockquote><p>x</p></blockquote>')
+        assert doc.content[0].kind == "blockquote"
 
         # layout, layout_section, layout_cell kinds
         doc = self.parser.parse('<ac:layout><ac:layout-section ac:type="fixed-width"><ac:layout-cell><p>x</p></ac:layout-cell></ac:layout-section></ac:layout>')

@@ -29,7 +29,7 @@ def main() -> None:
     print("\nLinks and canonical URIs:")
     for el in doc.content:
         if el.type == "link" and el.link:
-            print(f"- link kind={el.link.kind} canonical={el.link.canonical_uri} internal={el.link.is_internal}")
+            print(f"- link kind={el.link.kind} canonical={el.link.canonical_uri}")
 
 
 if __name__ == "__main__":

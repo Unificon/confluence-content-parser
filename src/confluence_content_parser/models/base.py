@@ -162,12 +162,24 @@ class ContentElement(BaseModel):
             return "macro:children_display"
         if self.attachments_macro is not None:
             return "macro:attachments"
+        if self.adf_extension is not None:
+            return "adf_extension"
         if self.adf_node is not None:
             return "adf_node"
         if self.adf_fallback is not None:
             return "adf_fallback"
+        if self.decision_list is not None:
+            return "decision_list"
+        if self.task_list is not None:
+            return "task_list"
+        if self.task_list_container is not None:
+            return "task_list_container"
+        if self.task is not None:
+            return "task"
         if self.type == "p":
             return "paragraph"
+        if self.type == "blockquote":
+            return "blockquote"
         if self.type == "layout":
             return "layout"
         if self.type == "layout_section":
@@ -180,6 +192,8 @@ class ContentElement(BaseModel):
             return "inline_comment"
         if self.status is not None:
             return "status"
+        if self.emoticon is not None:
+            return "emoticon"
         if self.date is not None:
             return "date"
         return None

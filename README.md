@@ -1,10 +1,13 @@
 # Confluence Content Parser
 
-[![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
-[![Tests](https://img.shields.io/badge/tests-**passed-green.svg)](https://github.com/your-repo/confluence-content-parser)
-[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/your-repo/confluence-content-parser)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Code Style](https://img.shields.io/badge/code%20style-black-black.svg)](https://github.com/psf/black)
+> Important: This is an early-stage release. The API may change and using it in production carries risk. Pin versions and evaluate carefully before deployment.
+
+[![PyPI version](https://img.shields.io/pypi/v/confluence-content-parser)](https://pypi.org/project/confluence-content-parser/)
+[![Python versions](https://img.shields.io/pypi/pyversions/confluence-content-parser)](https://pypi.org/project/confluence-content-parser/)
+[![CI](https://github.com/Unificon/confluence-content-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/Unificon/confluence-content-parser/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/codecov/c/gh/Unificon/confluence-content-parser?label=coverage)](https://app.codecov.io/gh/Unificon/confluence-content-parser)
+[![License](https://img.shields.io/github/license/Unificon/confluence-content-parser)](LICENSE)
+[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 A powerful and comprehensive Python library for parsing Confluence Storage Format content into structured data models using Pydantic.
 
