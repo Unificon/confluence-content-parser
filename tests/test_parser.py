@@ -936,6 +936,21 @@ def hello():
         assert el.type == "link"
         assert el.link.url_reference is not None
         assert el.link.url_reference.value == "https://example.com"
+        assert el.link.canonical_uri == "https://example.com"
+
+    def test_parse_link_with_url_fallback(self):
+        """Cover url fallback branch when url_reference is None but url is set."""
+        content = """
+        <a href="https://fallback.com">Link text</a>
+        """
+        document = self.parser.parse(content)
+
+        assert len(document.content) == 1
+        el = document.content[0]
+        assert el.type == "link"
+        assert el.link.url_reference is None
+        assert el.link.url == "https://fallback.com"
+        assert el.link.canonical_uri == "https://fallback.com"
 
     def test_parse_extended_link_identifiers_and_plain_text_body(self):
         """Cover blog-post, space, content-entity, shortcut, and plain-text body."""
