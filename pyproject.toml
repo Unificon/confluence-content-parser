@@ -1,0 +1,67 @@
+[project]
+name = "confluence-content-parser"
+version = "0.1.0"
+description = "A Python library for parsing Confluence Storage Format content into structured data"
+readme = "README.md"
+authors = [
+    { name = "Uladzislau Hubar", email = "hubar.uladzislau@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "lxml>=6.0.1",
+    "pydantic>=2.11.7",
+    "types-lxml>=2025.8.25",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Markup :: XML",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["confluence", "parser", "xml", "content"]
+
+[project.optional-dependencies]
+dev = []
+
+[tool.black]
+line-length = 120
+target-version = ['py312']
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"examples/**.py" = ["E501"]
+"tests/**.py" = ["E501"]
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "--cov=confluence_content_parser --cov-report=html --cov-report=term-missing"
+
+[build-system]
+requires = ["uv_build>=0.8.13,<0.9.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "mypy>=1.17.1",
+    "pytest>=8.4.2",
+    "pytest-cov>=6.3.0",
+    "ruff>=0.12.12",
+]

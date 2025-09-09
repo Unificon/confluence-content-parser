@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --dev
+
+      - name: Lint (ruff)
+        run: uv run ruff check src tests
+
+      - name: Format check (black)
+        run: uv run black --check src tests
+
+      - name: Type check (mypy)
+        run: uv run mypy src
+
+      - name: Run tests with coverage
+        run: uv run pytest --cov=confluence_content_parser --cov-report=term-missing --cov-report=xml
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
