@@ -23,7 +23,7 @@ class TestConfluenceParser:
 
     def test_parse_layout_structure(self):
         """Test parsing layout structures."""
-        content = '''
+        content = """
         <ac:layout>
             <ac:layout-section ac:type="fixed-width">
                 <ac:layout-cell>
@@ -31,7 +31,7 @@ class TestConfluenceParser:
                 </ac:layout-cell>
             </ac:layout-section>
         </ac:layout>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -43,12 +43,12 @@ class TestConfluenceParser:
 
     def test_parse_structured_macro(self):
         """Test parsing structured macros."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="code" ac:macro-id="test-123">
             <ac:parameter ac:name="language">py</ac:parameter>
             <ac:plain-text-body><![CDATA[def test(): return None]]></ac:plain-text-body>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -59,11 +59,11 @@ class TestConfluenceParser:
 
     def test_parse_link_with_user_reference(self):
         """Test parsing links with user references."""
-        content = '''
+        content = """
         <ac:link>
             <ri:user ri:account-id="123456" ri:local-id="user-local-id"/>
         </ac:link>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -75,7 +75,7 @@ class TestConfluenceParser:
 
     def test_parse_table(self):
         """Test parsing table structures."""
-        content = '''
+        content = """
         <table>
             <tbody>
                 <tr>
@@ -88,7 +88,7 @@ class TestConfluenceParser:
                 </tr>
             </tbody>
         </table>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -106,12 +106,12 @@ class TestConfluenceParser:
 
     def test_parse_status_macro(self):
         """Test parsing status macros."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="status" ac:macro-id="status-123">
             <ac:parameter ac:name="title">In Progress</ac:parameter>
             <ac:parameter ac:name="colour">Blue</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -122,9 +122,9 @@ class TestConfluenceParser:
 
     def test_parse_emoticon(self):
         """Test parsing emoticons."""
-        content = '''
+        content = """
         <ac:emoticon ac:name="smile" ac:emoji-shortname=":smile:" ac:emoji-id="1f600" ac:emoji-fallback="😀"/>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -157,7 +157,7 @@ class TestConfluenceParser:
 
     def test_parse_complex_confluence_content(self):
         """Test parsing the complex example content provided."""
-        content = '''
+        content = """
         <ac:layout>
             <ac:layout-section ac:type="fixed-width" ac:breakout-mode="default">
                 <ac:layout-cell>
@@ -167,7 +167,7 @@ class TestConfluenceParser:
                 </ac:layout-cell>
             </ac:layout-section>
         </ac:layout>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert isinstance(document, ConfluenceDocument)
@@ -209,7 +209,7 @@ class TestConfluenceParser:
 
     def test_parse_panel_macro(self):
         """Test parsing panel macros."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="panel" ac:macro-id="panel-123">
             <ac:parameter ac:name="title">Important Note</ac:parameter>
             <ac:parameter ac:name="borderStyle">solid</ac:parameter>
@@ -224,7 +224,7 @@ class TestConfluenceParser:
                 <p>This is an important message in a panel.</p>
             </ac:rich-text-body>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -244,12 +244,12 @@ class TestConfluenceParser:
 
     def test_parse_task_element(self):
         """Test parsing ac:task elements."""
-        content = '''
+        content = """
         <ac:task ac:local-id="task-001" ac:task-id="123456" status="complete">
             <ac:task-status>complete</ac:task-status>
             <ac:task-body>Complete the documentation</ac:task-body>
         </ac:task>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -262,9 +262,9 @@ class TestConfluenceParser:
 
     def test_parse_i18n_element(self):
         """Test parsing at:i18n elements."""
-        content = '''
+        content = """
         <at:i18n at:key="confluence.page.title.example"/>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -274,14 +274,14 @@ class TestConfluenceParser:
 
     def test_parse_adf_extension(self):
         """Test parsing ac:adf-extension elements."""
-        content = '''
+        content = """
         <ac:adf-extension extension-type="com.atlassian.confluence.macro.core" extension-key="expand">
             <ac:parameter ac:name="title">Click to expand</ac:parameter>
             <ac:content>
                 <p>Hidden content that expands</p>
             </ac:content>
         </ac:adf-extension>
-        '''
+        """
         document = self.parser.parse(content)
 
         # The parser emits the adf_extension and also nested content nodes.
@@ -295,7 +295,7 @@ class TestConfluenceParser:
 
     def test_parse_adf_extension_with_decision_list_fallback(self):
         """ADF decision-list inside extension should materialize DecisionList via fallback."""
-        content = '''
+        content = """
         <ac:adf-extension>
           <ac:adf-node type="decision-list" local-id="dec-1">
             <ac:adf-attribute key="state">DECIDED</ac:adf-attribute>
@@ -304,7 +304,7 @@ class TestConfluenceParser:
             <ul class="decision-list"><li>Decision</li></ul>
           </ac:adf-fallback>
         </ac:adf-extension>
-        '''
+        """
         document = self.parser.parse(content)
 
         types = [el.type for el in document.content]
@@ -317,9 +317,9 @@ class TestConfluenceParser:
 
     def test_parse_placeholder(self):
         """Test parsing ac:placeholder elements."""
-        content = '''
+        content = """
         <ac:placeholder ac:type="mention">@username</ac:placeholder>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -330,9 +330,9 @@ class TestConfluenceParser:
 
     def test_parse_inline_comment(self):
         """Test parsing ac:inline-comment-marker elements."""
-        content = '''
+        content = """
         <ac:inline-comment-marker ac:ref="comment-123">Highlighted text</ac:inline-comment-marker>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -343,11 +343,11 @@ class TestConfluenceParser:
 
     def test_parse_image_with_attachment(self):
         """Test parsing ac:image with attachment reference."""
-        content = '''
+        content = """
         <ac:image ac:alt="Screenshot" ac:title="Example Screenshot" ac:width="500" ac:height="300">
             <ri:attachment ri:filename="screenshot.png" ri:content-id="12345" ri:version-at-save="1"/>
         </ac:image>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -363,11 +363,11 @@ class TestConfluenceParser:
 
     def test_parse_image_with_url(self):
         """Test parsing ac:image with URL reference."""
-        content = '''
+        content = """
         <ac:image ac:alt="External image">
             <ri:url ri:value="https://example.com/image.png"/>
         </ac:image>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -379,7 +379,7 @@ class TestConfluenceParser:
 
     def test_parse_task_list_macro(self):
         """Test parsing task-list macros with multiple items."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="task-list" ac:macro-id="tasklist-123">
             <ac:task-item ac:local-id="item-1" ac:task-id="task-1" completed="false">
                 Buy groceries
@@ -388,7 +388,7 @@ class TestConfluenceParser:
                 Walk the dog
             </ac:task-item>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -411,7 +411,7 @@ class TestConfluenceParser:
 
     def test_parse_complex_nested_content(self):
         """Test parsing complex nested content with new elements."""
-        content = '''
+        content = """
         <ac:layout>
             <ac:layout-section ac:type="two-column">
                 <ac:layout-cell>
@@ -432,7 +432,7 @@ class TestConfluenceParser:
                 </ac:layout-cell>
             </ac:layout-section>
         </ac:layout>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -460,13 +460,13 @@ class TestConfluenceParser:
 
     def test_parse_notification_macros(self):
         """Test parsing info, warning, note, tip macros."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="info" ac:macro-id="info-123">
             <ac:rich-text-body>
                 <p>This is an info message.</p>
             </ac:rich-text-body>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -477,12 +477,12 @@ class TestConfluenceParser:
 
     def test_parse_view_file_macro(self):
         """Test parsing view-file macros."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="view-file" ac:macro-id="viewfile-123">
             <ac:parameter ac:name="name">document.pdf</ac:parameter>
             <ac:parameter ac:name="version-at-save">2</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -493,11 +493,11 @@ class TestConfluenceParser:
 
     def test_parse_view_file_macro_with_attachment_parameter(self):
         """Test parsing view-file macro when 'name' parameter contains an attachment node."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="view-file" ac:macro-id="viewfile-456">
             <ac:parameter ac:name="name"><ri:attachment ri:filename="PDF Guideline.pdf" ri:version-at-save="1"/></ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -508,11 +508,11 @@ class TestConfluenceParser:
 
     def test_parse_gadget_macro(self):
         """Test parsing gadget macros."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="gadget" ac:local-id="gadget-123" data-layout="default">
             <ac:parameter ac:name="url">https://example.com/gadget.xml</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -523,7 +523,7 @@ class TestConfluenceParser:
 
     def test_parse_expand_macro(self):
         """Test parsing expand macros."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="expand" ac:macro-id="expand-123">
             <ac:parameter ac:name="title">Click to expand</ac:parameter>
             <ac:parameter ac:name="breakoutWidth">760</ac:parameter>
@@ -531,7 +531,7 @@ class TestConfluenceParser:
                 <p>Hidden expandable content here.</p>
             </ac:rich-text-body>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -544,11 +544,11 @@ class TestConfluenceParser:
 
     def test_parse_toc_macro(self):
         """Test parsing table of contents macros."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="toc" ac:local-id="toc-123">
             <ac:parameter ac:name="style">disc</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -564,12 +564,12 @@ class TestConfluenceParser:
 
     def test_parse_new_common_macros(self):
         # excerpt
-        content = '''
+        content = """
         <ac:structured-macro ac:name="excerpt" ac:macro-id="ex-1">
             <ac:parameter ac:name="hidden">true</ac:parameter>
             <ac:rich-text-body><p>Excerpt body</p></ac:rich-text-body>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
         assert len(document.content) == 1
         assert document.content[0].type in {"excerpt_macro", "macro"}
@@ -579,22 +579,22 @@ class TestConfluenceParser:
             assert any(child.type == "p" for child in ex.children)
 
         # excerpt-include
-        content = '''
+        content = """
         <ac:structured-macro ac:name="excerpt-include" ac:macro-id="exi-1">
             <ac:parameter ac:name="page">Home</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
         assert len(document.content) == 1
         assert document.content[0].type in {"excerpt_include_macro", "macro"}
 
         # page-properties
-        content = '''
+        content = """
         <ac:structured-macro ac:name="page-properties" ac:macro-id="pp-1">
             <ac:parameter ac:name="hidden">false</ac:parameter>
             <ac:rich-text-body><p>Table</p></ac:rich-text-body>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
         assert len(document.content) == 1
         assert document.content[0].type in {"page_properties_macro", "macro"}
@@ -604,48 +604,48 @@ class TestConfluenceParser:
             assert any(child.type == "p" for child in ppm.children)
 
         # page-properties-report
-        content = '''
+        content = """
         <ac:structured-macro ac:name="page-properties-report" ac:macro-id="ppr-1">
             <ac:parameter ac:name="labels">k1,k2</ac:parameter>
             <ac:parameter ac:name="spaceKey">FOO</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
         assert len(document.content) == 1
         assert document.content[0].type in {"page_properties_report_macro", "macro"}
 
         # children-display
-        content = '''
+        content = """
         <ac:structured-macro ac:name="children-display" ac:macro-id="cd-1">
             <ac:parameter ac:name="depth">2</ac:parameter>
             <ac:parameter ac:name="excerpt">simple</ac:parameter>
             <ac:parameter ac:name="sort">creation</ac:parameter>
             <ac:parameter ac:name="reverse">true</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
         assert len(document.content) == 1
         assert document.content[0].type in {"children_display_macro", "macro"}
 
         # attachments
-        content = '''
+        content = """
         <ac:structured-macro ac:name="attachments" ac:macro-id="att-1">
             <ac:parameter ac:name="patterns">*.png,*.jpg</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
         assert len(document.content) == 1
         assert document.content[0].type in {"attachments_macro", "macro"}
 
     def test_parse_enhanced_jira_macro(self):
         """Test parsing enhanced jira macros."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="jira" ac:macro-id="jira-123">
             <ac:parameter ac:name="key">PROJ-123</ac:parameter>
             <ac:parameter ac:name="serverId">server-456</ac:parameter>
             <ac:parameter ac:name="server">Production Jira</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -657,7 +657,7 @@ class TestConfluenceParser:
 
     def test_parse_task_list_container(self):
         """Test parsing direct ac:task-list containers (different from macro task lists)."""
-        content = '''
+        content = """
         <ac:task-list>
             <ac:task>
                 <ac:task-id>task-001</ac:task-id>
@@ -672,7 +672,7 @@ class TestConfluenceParser:
                 <ac:task-body>Another task</ac:task-body>
             </ac:task>
         </ac:task-list>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -692,7 +692,7 @@ class TestConfluenceParser:
 
     def test_parse_horizontal_rule(self):
         """Test parsing horizontal rules."""
-        content = '<hr />'
+        content = "<hr />"
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -701,7 +701,7 @@ class TestConfluenceParser:
 
     def test_parse_enhanced_code_block(self):
         """Test parsing code blocks with breakout parameters."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="code" ac:macro-id="code-123">
             <ac:parameter ac:name="language">python</ac:parameter>
             <ac:parameter ac:name="title">Example Code</ac:parameter>
@@ -712,7 +712,7 @@ def hello():
     return "Hello World"
             ]]></ac:plain-text-body>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -726,7 +726,7 @@ def hello():
 
     def test_parse_advanced_content_sample(self):
         """Test parsing a subset of the advanced content provided by the user."""
-        content = '''
+        content = """
         <ac:layout>
             <ac:layout-section ac:type="fixed-width">
                 <ac:layout-cell>
@@ -748,7 +748,7 @@ def hello():
                 </ac:layout-cell>
             </ac:layout-section>
         </ac:layout>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -791,15 +791,14 @@ def hello():
         hr_elements = [elem for elem in cell_content if elem.type == "hr"]
         assert len(hr_elements) == 1
 
-
     def test_parse_enhanced_image_attributes(self):
         """Test parsing images with enhanced attributes."""
-        content = '''
+        content = """
         <ac:image ac:align="center" ac:layout="center" ac:original-height="1920"
                   ac:original-width="1080" ac:custom-width="true" ac:width="760">
             <ri:attachment ri:filename="screenshot.png" />
         </ac:image>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -814,10 +813,10 @@ def hello():
 
     def test_parse_text_formatting_elements(self):
         """Test parsing various text formatting elements."""
-        content = '''
+        content = """
         <p>This has <strong>bold</strong>, <em>italic</em>, <u>underlined</u>,
            <del>deleted</del>, <sub>subscript</sub>, and <sup>superscript</sup> text.</p>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -831,7 +830,7 @@ def hello():
 
     def test_parse_empty_and_self_closing_elements(self):
         """Test parsing empty paragraphs and self-closing elements."""
-        content = '''<root><p /><hr /><br /></root>'''
+        content = """<root><p /><hr /><br /></root>"""
         document = self.parser.parse(content)
 
         # The parser correctly parses each element separately
@@ -842,7 +841,7 @@ def hello():
 
     def test_parse_standalone_layout_cell(self):
         """Cover direct layout-cell branch and layout_cell parsing."""
-        content = '''<ac:layout-cell><p>x</p></ac:layout-cell>'''
+        content = """<ac:layout-cell><p>x</p></ac:layout-cell>"""
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -854,7 +853,7 @@ def hello():
 
     def test_parse_generic_unknown_tag(self):
         """Cover generic element path for unknown tags."""
-        content = '<foo><bar>text</bar></foo>'
+        content = "<foo><bar>text</bar></foo>"
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -869,11 +868,11 @@ def hello():
 
     def test_parse_unknown_macro_falls_back_to_macro_element(self):
         """Cover default macro branch when name is unrecognized."""
-        content = '''
+        content = """
         <ac:structured-macro ac:name="xyz" ac:macro-id="m-1">
             <ac:parameter ac:name="a">b</ac:parameter>
         </ac:structured-macro>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -884,18 +883,18 @@ def hello():
         assert el.macro.parameters["a"] == "b"
 
         # also cover a known branch just above default (e.g., toc), to ensure line 237 path was hit
-        content = '''<ac:structured-macro ac:name="anchor" ac:macro-id="anc-1"/>'''
+        content = """<ac:structured-macro ac:name="anchor" ac:macro-id="anc-1"/>"""
         document = self.parser.parse(content)
         # handler runs even without params
         assert len(document.content) == 1
 
     def test_parse_link_with_page_reference(self):
         """Cover page reference branch for ac:link."""
-        content = '''
+        content = """
         <ac:link>
             <ri:page ri:content-title="Template - Decision documentation" ri:version-at-save="1" />
         </ac:link>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -907,12 +906,12 @@ def hello():
 
     def test_parse_link_with_attachment_and_body(self):
         """Cover attachment and link-body branches for ac:link."""
-        content = '''
+        content = """
         <ac:link>
             <ri:attachment ri:filename="file.pdf" ri:version-at-save="3" />
             <ac:link-body>Attachment</ac:link-body>
         </ac:link>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -925,11 +924,11 @@ def hello():
 
     def test_parse_link_with_url_reference(self):
         """Cover url reference branch for ac:link."""
-        content = '''
+        content = """
         <ac:link>
             <ri:url ri:value="https://example.com" />
         </ac:link>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -940,12 +939,12 @@ def hello():
 
     def test_parse_extended_link_identifiers_and_plain_text_body(self):
         """Cover blog-post, space, content-entity, shortcut, and plain-text body."""
-        content = '''
+        content = """
         <ac:link>
             <ri:blog-post ri:space-key="FOO" ri:content-title="First Post" ri:posting-day="2012/01/30" />
             <ac:plain-text-link-body><![CDATA[Blog]]></ac:plain-text-link-body>
         </ac:link>
-        '''
+        """
         document = self.parser.parse(content)
         assert len(document.content) == 1
         el = document.content[0]
@@ -956,25 +955,25 @@ def hello():
         assert el.link.blog_post_reference.posting_day == "2012/01/30"
         assert el.link.text == "Blog"
 
-        content = '''
+        content = """
         <ac:link><ri:space ri:space-key="TST"/></ac:link>
-        '''
+        """
         document = self.parser.parse(content)
         el = document.content[0]
         assert el.link.space_reference is not None
         assert el.link.space_reference.space_key == "TST"
 
-        content = '''
+        content = """
         <ac:link><ri:content-entity ri:content-id="123"/></ac:link>
-        '''
+        """
         document = self.parser.parse(content)
         el = document.content[0]
         assert el.link.content_entity_reference is not None
         assert el.link.content_entity_reference.content_id == "123"
 
-        content = '''
+        content = """
         <ac:link><ri:shortcut ri:key="jira" ri:parameter="ABC-1"/></ac:link>
-        '''
+        """
         document = self.parser.parse(content)
         el = document.content[0]
         assert el.link.shortcut_reference is not None
@@ -983,12 +982,12 @@ def hello():
 
     def test_parse_adf_node_default(self):
         """Cover default AdfNode creation and append path."""
-        content = '''
+        content = """
         <ac:adf-node type="custom" local-id="l1">
           <ac:adf-attribute key="k">v</ac:adf-attribute>
           <ac:adf-content>hello</ac:adf-content>
         </ac:adf-node>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -1001,13 +1000,13 @@ def hello():
 
     def test_parse_adf_node_with_nested_child_node(self):
         """Cover nested adf-node path to execute child_nodes recursion and extend logic."""
-        content = '''
+        content = """
         <ac:adf-node type="container" local-id="c1">
           <ac:adf-node type="paragraph" local-id="p1">
             <ac:adf-content>text</ac:adf-content>
           </ac:adf-node>
         </ac:adf-node>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -1018,13 +1017,13 @@ def hello():
 
     def test_parse_adf_node_decision_list_direct(self):
         """Cover direct decision-list mapping path without fallback."""
-        content = '''
+        content = """
         <ac:adf-node type="decision-list" local-id="dec-2">
           <ac:adf-node type="decision-item" local-id="it-1">
             <ac:adf-content>Item</ac:adf-content>
           </ac:adf-node>
         </ac:adf-node>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -1038,11 +1037,11 @@ def hello():
 
     def test_parse_adf_node_decision_list_with_direct_li(self):
         """Cover li extraction inside decision-list branch to hit lines 813-815."""
-        content = '''
+        content = """
         <ac:adf-node type="decision-list" local-id="dec-3">
           <ul class="decision-list"><li>Direct decision</li></ul>
         </ac:adf-node>
-        '''
+        """
         document = self.parser.parse(content)
 
         assert len(document.content) == 1
@@ -1052,7 +1051,7 @@ def hello():
         assert [it.content for it in dl.decision_list.items] == ["Direct decision"]
 
     def test_helpers_iteration_and_text_normalized(self):
-        content = '''<p>This <strong>has</strong> tails</p>'''
+        content = """<p>This <strong>has</strong> tails</p>"""
         document = self.parser.parse(content)
         el = document.content[0]
         assert el.text_normalized() == "This has tails"
@@ -1065,14 +1064,14 @@ def hello():
         assert el.id is not None and isinstance(el.path, list)
 
     def test_link_canonical_uri_variants(self):
-        content = '''
+        content = """
             <ac:link><ri:user ri:account-id="acc-1"/></ac:link>
             <ac:link><ri:page ri:space-key="FOO" ri:content-title="Bar"/></ac:link>
             <ac:link><ri:attachment ri:filename="file.pdf" ri:version-at-save="3"/></ac:link>
             <ac:link><ri:content-entity ri:content-id="123"/></ac:link>
             <ac:link><ri:shortcut ri:key="jira" ri:parameter="ABC-1"/></ac:link>
             <a href="https://e.com">x</a>
-        '''
+        """
         document = self.parser.parse(content)
         links = [e for e in document.content if e.kind == "link"]
         uris = [e.link.canonical_uri for e in links]
@@ -1084,10 +1083,10 @@ def hello():
         assert any(u.startswith("https://e.com") for u in uris if isinstance(u, str))
         # internal flags
         kinds = [e.link.kind for e in links]
-        assert set(kinds) >= {"user","page","attachment","content_entity","shortcut","url"}
+        assert set(kinds) >= {"user", "page", "attachment", "content_entity", "shortcut", "url"}
 
     def test_list_and_layout_scopes(self):
-        content = '''
+        content = """
         <ac:layout>
           <ac:layout-section ac:type="two_equal">
             <ac:layout-cell>
@@ -1098,7 +1097,7 @@ def hello():
             </ac:layout-cell>
           </ac:layout-section>
         </ac:layout>
-        '''
+        """
         document = self.parser.parse(content)
         layout = document.content[0]
         sec = layout.children[0]
@@ -1111,39 +1110,39 @@ def hello():
         assert all("cell_index" in e.layout_scope for e in cell1)
 
     def test_unknown_macro_diagnostics(self):
-        content = '''<ac:structured-macro ac:name="xyz"/>'''
+        content = """<ac:structured-macro ac:name="xyz"/>"""
         doc = self.parser.parse(content)
         diags = doc.metadata.get("diagnostics") or []
         assert any(d.startswith("unknown_macro:") for d in diags)
 
     def test_link_additional_kinds(self):
-        content = '''
+        content = """
             <ac:link><ri:blog-post ri:space-key="FOO" ri:content-title="First Post" ri:posting-day="2012/01/30"/></ac:link>
             <ac:link><ri:space ri:space-key="TST"/></ac:link>
             <ac:link><ac:unknown/></ac:link>
-        '''
+        """
         document = self.parser.parse(content)
         links = [e for e in document.content if e.type == "link"]
         uris = [e.link.canonical_uri for e in links]
         assert "blog://FOO/First Post@2012/01/30" in uris
         assert "space://TST" in uris
-        assert any(lce.link.kind is None or lce.link.kind in {"blog_post","space"} for lce in links)
+        assert any(lce.link.kind is None or lce.link.kind in {"blog_post", "space"} for lce in links)
 
     def test_link_page_with_version_at_save(self):
-        content = '''<ac:link><ri:page ri:space-key="FOO" ri:content-title="Bar" ri:version-at-save="7"/></ac:link>'''
+        content = """<ac:link><ri:page ri:space-key="FOO" ri:content-title="Bar" ri:version-at-save="7"/></ac:link>"""
         doc = self.parser.parse(content)
         link_el = doc.content[0]
         assert link_el.link.canonical_uri == "page://FOO/Bar@v7"
 
     def test_table_cells_child_parsing(self):
-        content = '''
+        content = """
         <table>
           <tbody>
             <tr><th><p>H1</p></th><th><p>H2</p></th></tr>
             <tr><td><strong>A</strong></td><td><em>B</em></td></tr>
           </tbody>
         </table>
-        '''
+        """
         doc = self.parser.parse(content)
         t = doc.content[0].table
         # ensure children in rich cells parsed via _parse_element
@@ -1153,22 +1152,22 @@ def hello():
 
     def test_kind_property_branches(self):
         # heading
-        doc = self.parser.parse('<h3>t</h3>')
+        doc = self.parser.parse("<h3>t</h3>")
         assert doc.content[0].kind == "heading"
 
         # list and list_item
-        doc = self.parser.parse('<ul><li>i</li></ul>')
+        doc = self.parser.parse("<ul><li>i</li></ul>")
         assert doc.content[0].kind == "list"
         assert doc.content[0].children[0].kind == "list_item"
 
         # hr and br
-        doc = self.parser.parse('<hr/>')
+        doc = self.parser.parse("<hr/>")
         assert doc.content[0].kind == "hr"
-        doc = self.parser.parse('<br/>')
+        doc = self.parser.parse("<br/>")
         assert doc.content[0].kind == "br"
 
         # paragraph
-        doc = self.parser.parse('<p>x</p>')
+        doc = self.parser.parse("<p>x</p>")
         assert doc.content[0].kind == "paragraph"
 
         # link
@@ -1180,11 +1179,13 @@ def hello():
         assert doc.content[0].kind == "image"
 
         # table
-        doc = self.parser.parse('<table><tbody><tr><td>a</td></tr></tbody></table>')
+        doc = self.parser.parse("<table><tbody><tr><td>a</td></tr></tbody></table>")
         assert doc.content[0].kind == "table"
 
         # code block
-        doc = self.parser.parse('<ac:structured-macro ac:name="code" ac:macro-id="m"><ac:plain-text-body><![CDATA[x]]></ac:plain-text-body></ac:structured-macro>')
+        doc = self.parser.parse(
+            '<ac:structured-macro ac:name="code" ac:macro-id="m"><ac:plain-text-body><![CDATA[x]]></ac:plain-text-body></ac:structured-macro>'
+        )
         assert doc.content[0].kind == "code_block"
 
         # panel
@@ -1248,37 +1249,41 @@ def hello():
         assert doc.content[0].kind == "adf_node"
 
         # adf_fallback (via direct)
-        doc = self.parser.parse('<ac:adf-fallback>f</ac:adf-fallback>')
+        doc = self.parser.parse("<ac:adf-fallback>f</ac:adf-fallback>")
         assert doc.content[0].kind == "adf_fallback"
 
         # adf_extension
-        doc = self.parser.parse('<ac:adf-extension/>')
+        doc = self.parser.parse("<ac:adf-extension/>")
         assert doc.content[0].kind == "adf_extension"
 
         # decision_list, task, task_list, task_list_container
         doc = self.parser.parse('<ac:task ac:local-id="1" ac:task-id="1"/>')
         assert doc.content[0].kind == "task"
-        doc = self.parser.parse('<ac:task-list/>')
+        doc = self.parser.parse("<ac:task-list/>")
         assert doc.content[0].kind == "task_list_container"
-        doc = self.parser.parse('<ac:structured-macro ac:name="task-list" ac:macro-id="t1"><ac:task-item ac:local-id="i" ac:task-id="t"/></ac:structured-macro>')
-        assert doc.content[0].kind in {"task_list","macro"}
+        doc = self.parser.parse(
+            '<ac:structured-macro ac:name="task-list" ac:macro-id="t1"><ac:task-item ac:local-id="i" ac:task-id="t"/></ac:structured-macro>'
+        )
+        assert doc.content[0].kind in {"task_list", "macro"}
 
         # emoticon
         doc = self.parser.parse('<ac:emoticon ac:name="blue-star"/>')
         assert doc.content[0].kind == "emoticon"
 
         # blockquote
-        doc = self.parser.parse('<blockquote><p>x</p></blockquote>')
+        doc = self.parser.parse("<blockquote><p>x</p></blockquote>")
         assert doc.content[0].kind == "blockquote"
 
         # layout, layout_section, layout_cell kinds
-        doc = self.parser.parse('<ac:layout><ac:layout-section ac:type="fixed-width"><ac:layout-cell><p>x</p></ac:layout-cell></ac:layout-section></ac:layout>')
+        doc = self.parser.parse(
+            '<ac:layout><ac:layout-section ac:type="fixed-width"><ac:layout-cell><p>x</p></ac:layout-cell></ac:layout-section></ac:layout>'
+        )
         layout = doc.content[0]
         assert layout.kind == "layout"
         sec = layout.children[0]
         assert sec.kind == "layout_section"
         # standalone layout-cell to ensure element with type=layout_cell exists
-        doc = self.parser.parse('<ac:layout-cell><p>x</p></ac:layout-cell>')
+        doc = self.parser.parse("<ac:layout-cell><p>x</p></ac:layout-cell>")
         assert doc.content[0].kind == "layout_cell"
 
         # placeholder
@@ -1296,4 +1301,3 @@ def hello():
         # date
         doc = self.parser.parse('<time datetime="2024-01-01"/>')
         assert doc.content[0].kind == "date"
-

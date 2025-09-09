@@ -19,11 +19,14 @@ limitations under the License.
 
 This product includes the following third-party dependencies:
 
+Pydantic (https://pydantic.dev/)
+Licensed under the MIT License
+
 lxml (https://lxml.de/)
 Licensed under the BSD-3-Clause License
 
-Pydantic (https://pydantic.dev/)
-Licensed under the MIT License
+types-lxml (https://github.com/abelcheung/types-lxml)
+Licensed under the Apache 2.0 License
 
 ===============================================================================
 
