@@ -1,106 +1,151 @@
 #!/usr/bin/env python3
-"""Basic usage example for confluence-content-parser."""
+"""
+Basic usage example for Confluence Content Parser.
+
+This example demonstrates core parsing capabilities including:
+- Text formatting (bold, italic, code)
+- Links and references
+- Status macros
+- Tables
+- Lists and task lists
+- Details macros with placeholders
+"""
 
 from confluence_content_parser import ConfluenceParser
 
 
 def main():
-    """Demonstrate basic usage of the parser."""
-    # Sample Confluence Storage Format content
-    confluence_content = '''
-    <ac:layout>
-        <ac:layout-section ac:type="fixed-width" ac:breakout-mode="default">
-            <ac:layout-cell>
-                <p>This is a sample paragraph with <strong>bold text</strong> and <em>italic text</em>.</p>
-                <p>Here's a link to a user: <ac:link><ri:user ri:account-id="123456" ri:local-id="user-id"/></ac:link></p>
-                <ac:structured-macro ac:name="status" ac:macro-id="status-1">
-                    <ac:parameter ac:name="title">In Progress</ac:parameter>
-                    <ac:parameter ac:name="colour">Blue</ac:parameter>
-                </ac:structured-macro>
-                <table data-table-width="500">
-                    <tbody>
-                        <tr>
-                            <th><p>Name</p></th>
-                            <th><p>Value</p></th>
-                        </tr>
-                        <tr>
-                            <td><p>Item 1</p></td>
-                            <td><p>Value 1</p></td>
-                        </tr>
-                        <tr>
-                            <td><p>Item 2</p></td>
-                            <td><p>Value 2</p></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </ac:layout-cell>
-        </ac:layout-section>
-    </ac:layout>
-    '''
+    confluence_content = """
+    <h1>Project Documentation</h1>
 
-    # Create parser instance
-    parser = ConfluenceParser()
+    <p>This document demonstrates <strong>basic parsing</strong> of Confluence content with <em>formatting</em> and <code>inline code</code>.</p>
+
+    <h2>Project Status</h2>
+    <p>Current status: <ac:structured-macro ac:name="status">
+        <ac:parameter ac:name="title">In Progress</ac:parameter>
+        <ac:parameter ac:name="colour">Yellow</ac:parameter>
+    </ac:structured-macro></p>
+
+    <h2>Team Information</h2>
+    <ac:structured-macro ac:name="details">
+        <ac:rich-text-body>
+            <table>
+                <tr><th>Role</th><th>Assignee</th></tr>
+                <tr><td>Project Lead</td><td><ac:placeholder>@ mention lead</ac:placeholder></td></tr>
+                <tr><td>Developer</td><td><ac:placeholder>@ mention developer</ac:placeholder></td></tr>
+                <tr><td>QA Engineer</td><td><ac:placeholder>@ mention qa</ac:placeholder></td></tr>
+            </table>
+        </ac:rich-text-body>
+    </ac:structured-macro>
+
+    <h2>Tasks</h2>
+    <ac:task-list>
+        <ac:task>
+            <ac:task-id>1</ac:task-id>
+            <ac:task-status>complete</ac:task-status>
+            <ac:task-body>Set up project repository</ac:task-body>
+        </ac:task>
+        <ac:task>
+            <ac:task-id>2</ac:task-id>
+            <ac:task-status>incomplete</ac:task-status>
+            <ac:task-body>Implement core features</ac:task-body>
+        </ac:task>
+    </ac:task-list>
+
+    <h2>External Resources</h2>
+    <ul>
+        <li>Documentation: <ac:link><ri:url ri:value="https://docs.example.com"/></ac:link></li>
+        <li>Repository: <ac:link><ri:url ri:value="https://github.com/example/project"/></ac:link></li>
+    </ul>
+    """
 
     # Parse the content
+    parser = ConfluenceParser()
     document = parser.parse(confluence_content)
 
-    # Display parsed structure
-    print("Parsed Confluence Document:")
-    print(f"Number of top-level elements: {len(document.content)}")
+    print("=== BASIC CONFLUENCE PARSING EXAMPLE ===\n")
+
+    # Get clean text output
+    print("1. DOCUMENT TEXT:")
+    print(document.text)
+    print("\n" + "=" * 50 + "\n")
+
+    # Extract specific elements using find_all
+    print("2. HEADINGS:")
+    from confluence_content_parser import HeadingElement
+
+    headings = document.find_all(HeadingElement)
+    for heading in headings:
+        print(f"  H{heading.type.value[-1]}: {heading.to_text()}")
     print()
 
-    # Recursively print the structure
-    def print_element(element, indent=0):
-        """Print element structure recursively."""
-        prefix = "  " * indent
-        print(f"{prefix}- Type: {element.type}")
+    print("3. STATUS ELEMENTS:")
+    from confluence_content_parser import StatusMacro
 
-        if element.text:
-            print(f"{prefix}  Text: {element.text}")
+    status_elements = document.find_all(StatusMacro)
+    for status in status_elements:
+        print(f"  {status.to_text()}")
+    print()
 
-        if element.link:
-            print(f"{prefix}  Link URL: {element.link.url}")
-            print(f"{prefix}  Link Text: {element.link.text}")
-            if element.link.user_reference:
-                print(f"{prefix}  User Account ID: {element.link.user_reference.account_id}")
+    print("4. TABLES:")
+    from confluence_content_parser import Table
 
-        if element.status:
-            print(f"{prefix}  Status Title: {element.status.title}")
-            print(f"{prefix}  Status Color: {element.status.colour}")
+    tables = document.find_all(Table)
+    for i, table in enumerate(tables, 1):
+        print(f"  Table {i}: {len(table.children)} rows")
+        print(f"    Content: {table.to_text()}")
+    print()
 
-        if element.table:
-            cells = element.table.cells
-            if cells:
-                headers = [" ".join((c.text or c.text_normalized()) for c in cell).strip() for cell in cells[0]]
-                print(f"{prefix}  Table Headers: {headers}")
-                for r_idx, row in enumerate(cells[1:], start=1):
-                    row_texts = [" ".join((c.text or c.text_normalized()) for c in cell).strip() for cell in row]
-                    print(f"{prefix}  Row {r_idx}: {row_texts}")
+    print("5. LINKS:")
+    from confluence_content_parser import LinkElement
 
-        if element.layout_section:
-            print(f"{prefix}  Layout Type: {element.layout_section.type}")
-            print(f"{prefix}  Layout Cells: {len(element.layout_section.cells)}")
+    links = document.find_all(LinkElement)
+    for link in links:
+        print(f"  {link.to_text()}")
+    print()
 
-        if element.macro:
-            print(f"{prefix}  Macro Name: {element.macro.name}")
-            print(f"{prefix}  Macro Parameters: {element.macro.parameters}")
+    print("6. TASK LISTS:")
+    from confluence_content_parser import ListElement, ListType
 
-        # Print children
-        for child in element.children:
-            print_element(child, indent + 1)
+    lists = document.find_all(ListElement)
+    task_lists = [list_element for list_element in lists if list_element.type == ListType.TASK]
+    for task_list in task_lists:
+        print(f"  Tasks: {task_list.to_text()}")
+    print()
 
-        # Print layout cell content
-        if element.layout_section:
-            for i, cell in enumerate(element.layout_section.cells):
-                print(f"{prefix}  Cell {i+1}:")
-                for cell_element in cell.content:
-                    print_element(cell_element, indent + 2)
+    print("7. PLACEHOLDER ELEMENTS:")
+    from confluence_content_parser import PlaceholderElement
 
-    for element in document.content:
-        print_element(element)
+    placeholders = document.find_all(PlaceholderElement)
+    for placeholder in placeholders:
+        print(f"  {placeholder.to_text()}")
+    print()
 
-    print("\nJSON representation:")
-    print(document.model_dump_json(indent=2))
+    print("8. DETAILS MACROS:")
+    from confluence_content_parser import DetailsMacro
+
+    details = document.find_all(DetailsMacro)
+    for detail in details:
+        print(f"  {detail.to_text()}")
+    print()
+
+    # Document statistics
+    all_nodes = document.walk()
+    print("9. DOCUMENT STATISTICS:")
+    print(f"  Total nodes: {len(all_nodes)}")
+    print(f"  Headings: {len(headings)}")
+    print(f"  Tables: {len(tables)}")
+    print(f"  Links: {len(links)}")
+    print(f"  Status elements: {len(status_elements)}")
+    print(f"  Placeholders: {len(placeholders)}")
+    print(f"  Details macros: {len(details)}")
+
+    # Check for any parsing issues
+    diagnostics = document.metadata.get("diagnostics", [])
+    if diagnostics:
+        print(f"\n10. PARSING DIAGNOSTICS: {diagnostics}")
+    else:
+        print("\n10. PARSING: No issues detected ✓")
 
 
 if __name__ == "__main__":
