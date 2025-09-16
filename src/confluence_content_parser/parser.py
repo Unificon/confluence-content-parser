@@ -1,921 +1,1000 @@
 from __future__ import annotations
 
-from lxml import etree
-from lxml.etree import QName, XMLParser, _Element
+import xml.etree.ElementTree as ET
+from collections.abc import Callable, Iterator
 
-from .models import (
-    AdfExtension,
-    AdfFallback,
-    AdfNode,
+from .document import ConfluenceDocument
+from .nodes import (
     AnchorMacro,
-    AttachmentReference,
     AttachmentsMacro,
-    BlogPostReference,
-    ChildrenDisplayMacro,
-    CodeBlock,
-    ConfluenceDocument,
-    ContentElement,
-    ContentEntityReference,
-    DateElement,
-    DecisionItem,
+    CodeMacro,
     DecisionList,
+    DecisionListItem,
+    DecisionListItemState,
+    DetailsMacro,
     Emoticon,
     ExcerptIncludeMacro,
     ExcerptMacro,
     ExpandMacro,
-    GadgetMacro,
-    I18nElement,
+    Fragment,
+    HeadingElement,
+    HeadingType,
     Image,
-    InlineComment,
+    IncludeMacro,
     JiraMacro,
     LayoutCell,
+    LayoutElement,
     LayoutSection,
-    Link,
-    NotificationMacro,
-    PagePropertiesMacro,
-    PagePropertiesReportMacro,
-    PageReference,
-    Panel,
-    Placeholder,
-    ShortcutReference,
-    SpaceReference,
-    Status,
-    StructuredMacro,
+    LayoutSectionType,
+    LinkElement,
+    LinkType,
+    ListElement,
+    ListItem,
+    ListType,
+    Node,
+    PanelMacro,
+    PanelMacroType,
+    PlaceholderElement,
+    ProfileMacro,
+    ResourceIdentifier,
+    ResourceIdentifierType,
+    StatusMacro,
     Table,
-    Task,
-    TaskElement,
-    TaskItem,
-    TaskList,
-    TaskListContainer,
+    TableCell,
+    TableRow,
+    TaskListItemStatus,
+    TasksReportMacro,
+    Text,
+    TextBreakElement,
+    TextBreakType,
+    TextEffectElement,
+    TextEffectType,
+    Time,
     TocMacro,
-    UrlReference,
-    UserReference,
     ViewFileMacro,
+    ViewPdfMacro,
 )
 
 
+class ParsingError(Exception):
+    """Raised when parsing fails with diagnostics."""
+
+    def __init__(self, diagnostics: list[str]):
+        self.diagnostics = diagnostics
+        super().__init__("; ".join(diagnostics) if diagnostics else "ParsingError")
+
+
 class ConfluenceParser:
-    NAMESPACES = {
-        "ac": "http://www.atlassian.com/schema/confluence/4/ac/",
-        "ri": "http://www.atlassian.com/schema/confluence/4/ri/",
-        "at": "http://www.atlassian.com/schema/confluence/4/at/",
-    }
+    """Efficient Confluence storage-format XML parser with generic element handling."""
 
-    def __init__(self) -> None:
-        self.xml_parser = XMLParser(ns_clean=True, remove_blank_text=True, recover=True, resolve_entities=True)
+    NS_AC = "http://www.atlassian.com/schema/confluence/4/ac/"
+    NS_RI = "http://www.atlassian.com/schema/confluence/4/ri/"
+    NS_AT = "http://www.atlassian.com/schema/confluence/4/at/"
+
+    def __init__(self, *, raise_on_finish: bool = True):
         self.diagnostics: list[str] = []
-
-    def parse(self, content: str) -> ConfluenceDocument:
-        self.diagnostics = []
-        root = self._parse_xml(content)
-        doc_content: list[ContentElement] = []
-
-        if root.tag == "root" and len(root) > 0:
-            for child in root:
-                self._parse_element(child, doc_content)
-        else:
-            self._parse_element(root, doc_content)
-
-        self._annotate_elements(doc_content)
-        return ConfluenceDocument(content=doc_content, metadata={"diagnostics": self.diagnostics})
-
-    def _parse_xml(self, content: str) -> _Element:
-        if self._needs_namespace_wrapping(content):
-            content = self._wrap_with_namespaces(content)
-        return etree.fromstring(content.encode("utf-8"), self.xml_parser)
-
-    def _needs_namespace_wrapping(self, content: str) -> bool:
-        return "xmlns:ac=" not in content and ("ac:" in content or "ri:" in content or "at:" in content)
-
-    def _wrap_with_namespaces(self, content: str) -> str:
-        namespace_declarations = " ".join(f'xmlns:{prefix}="{uri}"' for prefix, uri in self.NAMESPACES.items())
-        return f"""<?xml version="1.0" encoding="UTF-8"?>
-                   <root {namespace_declarations}>
-                       {content}
-                   </root>"""
-
-    def _parse_element(self, element: _Element, content_list: list[ContentElement]) -> None:
-        tag = self._get_local_name(element.tag)
-
-        match tag:
-            case "layout" | "ac:layout":
-                self._parse_layout(element, content_list)
-            case "layout-section" | "ac:layout-section":
-                self._parse_layout_section(element, content_list)
-            case "layout-cell" | "ac:layout-cell":
-                self._parse_layout_cell(element, content_list)
-            case "structured-macro" | "ac:structured-macro":
-                self._parse_structured_macro(element, content_list)
-            case "link" | "ac:link":
-                self._parse_link(element, content_list)
-            case "inline-comment-marker" | "ac:inline-comment-marker":
-                self._parse_inline_comment(element, content_list)
-            case "emoticon" | "ac:emoticon":
-                self._parse_emoticon(element, content_list)
-            case "placeholder" | "ac:placeholder":
-                self._parse_placeholder(element, content_list)
-            case "image" | "ac:image":
-                self._parse_image(element, content_list)
-            case "task" | "ac:task":
-                self._parse_task(element, content_list)
-            case "i18n" | "at:i18n":
-                self._parse_i18n(element, content_list)
-            case "adf-extension" | "ac:adf-extension":
-                self._parse_adf_extension(element, content_list)
-            case "task-list" | "ac:task-list":
-                self._parse_task_list_container(element, content_list)
-            case "adf-node" | "ac:adf-node":
-                self._parse_adf_node(element, content_list)
-            case "adf-fallback" | "ac:adf-fallback":
-                self._parse_adf_fallback(element, content_list)
-            case "hr":
-                self._parse_horizontal_rule(element, content_list)
-            case "table":
-                self._parse_table(element, content_list)
-            case "time":
-                self._parse_date(element, content_list)
-            case "a":
-                self._parse_anchor_link(element, content_list)
-            case _:
-                if self._is_text_element(tag):
-                    self._parse_text_element(element, content_list, tag)
-                else:
-                    self._parse_generic_element(element, content_list, tag)
-
-    def _is_text_element(self, tag: str) -> bool:
-        return tag in {
-            "p",
-            "div",
-            "span",
-            "strong",
-            "em",
-            "h1",
-            "h2",
-            "h3",
-            "h4",
-            "h5",
-            "h6",
-            "blockquote",
-            "ul",
-            "ol",
-            "li",
-            "hr",
-            "br",
-            "pre",
-            "code",
-            "u",
-            "del",
-            "sub",
-            "sup",
-            "s",
-            "mark",
+        self.raise_on_finish = raise_on_finish
+        self._skipped_elements = {"colgroup", "col", "adf-fallback", "inline-comment-marker"}
+        self._element_parsers: dict[str, Callable[[ET.Element], Node | None]] = {
+            "macro": self._parse_macro,
+            "structured-macro": self._parse_structured_macro,
+            "layout": self._parse_layout,
+            "layout-section": self._parse_layout_section,
+            "layout-cell": self._parse_layout_cell,
+            "h1": self._parse_heading,
+            "h2": self._parse_heading,
+            "h3": self._parse_heading,
+            "h4": self._parse_heading,
+            "h5": self._parse_heading,
+            "h6": self._parse_heading,
+            "strong": self._parse_text_effect,
+            "em": self._parse_text_effect,
+            "u": self._parse_text_effect,
+            "del": self._parse_text_effect,
+            "code": self._parse_text_effect,
+            "sub": self._parse_text_effect,
+            "sup": self._parse_text_effect,
+            "blockquote": self._parse_text_effect,
+            "span": self._parse_text_effect,
+            "p": self._parse_text_break,
+            "br": self._parse_text_break,
+            "hr": self._parse_text_break,
+            "ul": self._parse_list,
+            "ol": self._parse_list,
+            "li": self._parse_list_item,
+            "task-list": self._parse_list,
+            "task": self._parse_list_item,
+            "link": self._parse_link,
+            "link-body": self._parse_link_body,
+            "a": self._parse_external_link,
+            "image": self._parse_image,
+            "emoticon": self._parse_emoticon,
+            "placeholder": self._parse_placeholder,
+            "time": self._parse_time,
+            "page": self._parse_resource_identifier,
+            "blog-post": self._parse_resource_identifier,
+            "attachment": self._parse_resource_identifier,
+            "url": self._parse_resource_identifier,
+            "shortcut": self._parse_resource_identifier,
+            "user": self._parse_resource_identifier,
+            "space": self._parse_resource_identifier,
+            "content-entity": self._parse_resource_identifier,
+            "table": self._parse_table,
+            "tbody": self._parse_table_body,
+            "tr": self._parse_table_row,
+            "th": self._parse_table_cell,
+            "td": self._parse_table_cell,
+            "adf-extension": self._parse_adf_extension,
+        }
+        self._macro_parsers: dict[str, Callable[[ET.Element], Node | None]] = {
+            "panel": self._parse_panel_macro,
+            "tip": self._parse_panel_macro,
+            "note": self._parse_panel_macro,
+            "warning": self._parse_panel_macro,
+            "info": self._parse_panel_macro,
+            "code": self._parse_code_macro,
+            "details": self._parse_details_macro,
+            "expand": self._parse_expand_macro,
+            "status": self._parse_status_macro,
+            "toc": self._parse_toc_macro,
+            "jira": self._parse_jira_macro,
+            "include": self._parse_include_macro,
+            "tasks-report-macro": self._parse_tasks_report_macro,
+            "excerpt-include": self._parse_excerpt_include_macro,
+            "attachments": self._parse_attachments_macro,
+            "viewpdf": self._parse_viewpdf_macro,
+            "view-file": self._parse_view_file_macro,
+            "profile": self._parse_profile_macro,
+            "anchor": self._parse_anchor_macro,
+            "excerpt": self._parse_excerpt_macro,
         }
 
-    def _get_local_name(self, tag: str | bytes | bytearray | QName) -> str:
-        tag_str = str(tag)
-        return tag_str.split("}", 1)[1] if "}" in tag_str else tag_str
+    def parse(self, content: str) -> ConfluenceDocument:
+        """Parse Confluence storage-format XML into a ConfluenceDocument."""
+        self.diagnostics.clear()
 
-    def _get_attribute(self, element: _Element, attr_name: str) -> str | None:
-        for prefix, namespace in self.NAMESPACES.items():
-            for attr_variant in [f"{{{namespace}}}{attr_name}", f"{prefix}:{attr_name}", attr_name]:
-                value = element.get(attr_variant)
-                if value is not None:
-                    return value
+        try:
+            content = self._normalize_content(content)
+            root_element = ET.fromstring(content)
+        except ET.ParseError as e:
+            self.diagnostics.append(f"XML parsing failed: {e}")
+            return ConfluenceDocument(metadata={"diagnostics": self.diagnostics})
+
+        children = self._parse_children(root_element)
+        root_node = self._consolidate_root(children)
+
+        if self.raise_on_finish and self.diagnostics:
+            raise ParsingError(self.diagnostics[:])
+
+        return ConfluenceDocument(root=root_node, metadata={"diagnostics": self.diagnostics})
+
+    def _normalize_content(self, content: str) -> str:
+        """Add namespace declarations and entity definitions to ensure proper XML parsing."""
+        content = content.strip()
+
+        content = self._fix_unicode_surrogates(content)
+
+        return f"""<?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE root [
+            <!ENTITY nbsp "&#160;">
+            <!ENTITY ndash "&#8211;">
+            <!ENTITY mdash "&#8212;">
+            <!ENTITY ldquo "&#8220;">
+            <!ENTITY rdquo "&#8221;">
+            <!ENTITY lsquo "&#8216;">
+            <!ENTITY rsquo "&#8217;">
+            <!ENTITY hellip "&#8230;">
+            <!ENTITY copy "&#169;">
+            <!ENTITY reg "&#174;">
+            <!ENTITY trade "&#8482;">
+            <!ENTITY zwj "&#8205;">
+            <!ENTITY zwnj "&#8204;">
+        ]>
+        <root xmlns:ac="{self.NS_AC}"
+            xmlns:ri="{self.NS_RI}"
+            xmlns:at="{self.NS_AT}">
+            {content}
+        </root>"""
+
+    def _fix_unicode_surrogates(self, content: str) -> str:
+        """Fix Unicode surrogate characters that can cause XML parsing issues."""
+        try:
+            content.encode("utf-8")
+            return content
+        except UnicodeEncodeError:
+            result = []
+            i = 0
+            while i < len(content):
+                char = content[i]
+                try:
+                    char.encode("utf-8")
+                    result.append(char)
+                except UnicodeEncodeError:
+                    pass
+                i += 1
+            return "".join(result)
+
+    def _consolidate_root(self, children: list[Node]) -> Node | None:
+        """Convert parsed children into appropriate root node structure."""
+        if len(children) == 0:
+            return None
+        elif len(children) == 1:
+            return children[0]
+        else:
+            return Fragment(children=children)
+
+    def _parse_children(self, element: ET.Element) -> list[Node]:
+        """Parse all children of an element into nodes."""
+        nodes: list[Node] = []
+
+        if element.text and element.text.strip():
+            nodes.append(Text(text=element.text.strip()))
+
+        for child in element:
+            node = self._parse_element(child)
+            if node:
+                nodes.append(node)
+
+            if child.tail and child.tail.strip():
+                nodes.append(Text(text=child.tail.strip()))
+
+        return nodes
+
+    def _parse_element(self, element: ET.Element) -> Node | None:
+        """Parse a single element into appropriate node type."""
+        tag = self._get_tag_name(element)
+
+        if tag in self._skipped_elements:
+            return None
+
+        parser = self._element_parsers.get(tag)
+        if parser:
+            return parser(element)
+
+        self.diagnostics.append(f"unknown_element:{tag}")
         return None
 
-    def _parse_layout(self, element: _Element, content_list: list[ContentElement]) -> None:
-        children: list[ContentElement] = []
-        for child in element:
-            self._parse_element(child, children)
+    def _parse_layout(self, element: ET.Element) -> LayoutElement:
+        """Parse ac:layout element."""
+        return LayoutElement(children=self._parse_children(element))
 
-        content_list.append(ContentElement(type="layout", children=children, attributes=dict(element.attrib)))
+    def _parse_layout_section(self, element: ET.Element) -> LayoutSection:
+        """Parse ac:layout-section element."""
+        section_type_str = self._get_attr(element, "type") or "single"
+        section_type = LayoutSectionType(section_type_str)
 
-    def _parse_layout_section(self, element: _Element, content_list: list[ContentElement]) -> None:
-        layout_section = LayoutSection(
-            type=self._get_attribute(element, "type") or "",
-            breakout_mode=self._get_attribute(element, "breakout-mode"),
-            breakout_width=self._get_attribute(element, "breakout-width"),
+        breakout_mode = self._get_attr(element, "breakout-mode")
+        breakout_width = self._get_attr(element, "breakout-width")
+
+        return LayoutSection(
+            section_type=section_type,
+            breakout_mode=breakout_mode,
+            breakout_width=breakout_width,
+            children=self._parse_children(element),
         )
 
-        for child in element:
-            if self._get_local_name(child.tag) in ("layout-cell", "ac:layout-cell"):
-                cell_content: list[ContentElement] = []
-                for cell_child in child:
-                    self._parse_element(cell_child, cell_content)
-                layout_section.cells.append(LayoutCell(content=cell_content))
+    def _parse_layout_cell(self, element: ET.Element) -> LayoutCell:
+        """Parse ac:layout-cell element."""
+        return LayoutCell(children=self._parse_children(element))
 
-        content_list.append(
-            ContentElement(type="layout_section", layout_section=layout_section, attributes=dict(element.attrib))
-        )
+    def _parse_heading(self, element: ET.Element) -> HeadingElement:
+        """Parse heading elements (h1, h2, h3, h4, h5, h6)."""
+        tag = self._get_tag_name(element)
+        heading_type = HeadingType(tag)
+        styles = self._parse_css_styles(element)
+        return HeadingElement(type=heading_type, styles=styles, children=self._parse_children(element))
 
-    def _parse_layout_cell(self, element: _Element, content_list: list[ContentElement]) -> None:
-        children: list[ContentElement] = []
-        for child in element:
-            self._parse_element(child, children)
+    def _parse_text_effect(self, element: ET.Element) -> TextEffectElement:
+        """Parse text effect elements (strong, em, span, etc.)."""
+        tag = self._get_tag_name(element)
+        effect_type = TextEffectType(tag)
 
-        content_list.append(
-            ContentElement(
-                type="layout_cell", layout_cell=LayoutCell(content=children), attributes=dict(element.attrib)
-            )
-        )
+        styles = self._parse_css_styles(element)
 
-    def _parse_structured_macro(self, element: _Element, content_list: list[ContentElement]) -> None:
-        macro = self._build_structured_macro(element)
+        return TextEffectElement(type=effect_type, styles=styles, children=self._parse_children(element))
 
-        if macro.name == "status":
-            self._handle_status_macro(macro, element, content_list)
-        elif macro.name == "code":
-            self._handle_code_macro(macro, element, content_list)
-        elif macro.name == "jira":
-            self._handle_jira_macro(macro, element, content_list)
-        elif macro.name == "task-list":
-            self._handle_task_list_macro(macro, element, content_list)
-        elif macro.name == "panel":
-            self._handle_panel_macro(macro, element, content_list)
-        elif macro.name in ("info", "warning", "note", "tip"):
-            self._handle_notification_macro(macro, element, content_list)
-        elif macro.name == "view-file":
-            self._handle_view_file_macro(macro, element, content_list)
-        elif macro.name == "gadget":
-            self._handle_gadget_macro(macro, element, content_list)
-        elif macro.name == "expand":
-            self._handle_expand_macro(macro, element, content_list)
-        elif macro.name == "toc":
-            self._handle_toc_macro(macro, element, content_list)
-        elif macro.name == "anchor":
-            self._handle_anchor_macro(macro, element, content_list)
-        elif macro.name == "excerpt":
-            self._handle_excerpt_macro(macro, element, content_list)
-        elif macro.name == "excerpt-include":
-            self._handle_excerpt_include_macro(macro, element, content_list)
-        elif macro.name == "page-properties":
-            self._handle_page_properties_macro(macro, element, content_list)
-        elif macro.name == "page-properties-report":
-            self._handle_page_properties_report_macro(macro, element, content_list)
-        elif macro.name == "children-display":
-            self._handle_children_display_macro(macro, element, content_list)
-        elif macro.name == "attachments":
-            self._handle_attachments_macro(macro, element, content_list)
+    def _parse_text_break(self, element: ET.Element) -> TextBreakElement:
+        """Parse text break elements (p, br, hr)."""
+        tag = self._get_tag_name(element)
+        break_type = TextBreakType(tag)
+
+        if break_type == TextBreakType.PARAGRAPH:
+            styles = self._parse_css_styles(element)
+            return TextBreakElement(type=break_type, styles=styles, children=self._parse_children(element))
         else:
-            self.diagnostics.append(f"unknown_macro:{macro.name}")
-            content_list.append(ContentElement(type="macro", macro=macro, attributes=dict(element.attrib)))
+            return TextBreakElement(type=break_type)
 
-    def _build_structured_macro(self, element: _Element) -> StructuredMacro:
-        name = self._get_attribute(element, "name") or ""
-        macro_id = self._get_attribute(element, "macro-id") or ""
-        schema_version = self._get_attribute(element, "schema-version")
+    def _parse_list(self, element: ET.Element) -> ListElement:
+        """Parse list elements (ul, ol, task-list)."""
+        tag = self._get_tag_name(element)
+        list_type = ListType(tag)
 
-        macro = StructuredMacro(
-            name=name,
-            macro_id=macro_id,
-            schema_version=schema_version,
-            layout=element.get("data-layout"),
-        )
+        start = None
+        if list_type == ListType.ORDERED:
+            start_attr = self._get_attr(element, "start")
+            if start_attr:
+                try:
+                    start = int(start_attr)
+                except ValueError:
+                    pass
 
-        for child in element:
-            child_tag = self._get_local_name(child.tag)
+        return ListElement(type=list_type, start=start, children=self._parse_children(element))
 
-            if child_tag in ("parameter", "ac:parameter"):
-                param_name = self._get_attribute(child, "name") or ""
-                attachment = child.find(".//{*}attachment")
-                if attachment is not None:
-                    filename = self._get_attribute(attachment, "filename")
-                    version_at_save = self._get_attribute(attachment, "version-at-save")
-                    macro.parameters[param_name] = child.text or filename or ""
-                    if filename:
-                        macro.parameters[f"{param_name}__attachment_filename"] = filename
-                    if version_at_save:
-                        macro.parameters[f"{param_name}__attachment_version_at_save"] = version_at_save
-                else:
-                    macro.parameters[param_name] = child.text or ""
-            elif child_tag in ("plain-text-body", "ac:plain-text-body"):
-                macro.body = child.text
-            elif child_tag in ("rich-text-body", "ac:rich-text-body"):
-                macro.body = self._extract_text(child)
+    def _parse_list_item(self, element: ET.Element) -> ListItem:
+        """Parse list item elements (li, ac:task)."""
+        tag = self._get_tag_name(element)
 
-        return macro
+        if tag == "task":
+            task_id = None
+            uuid = None
+            status = TaskListItemStatus.INCOMPLETE
+            children = []
 
-    def _handle_status_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        status = Status(
-            title=macro.parameters.get("title", ""),
-            colour=macro.parameters.get("colour", ""),
-        )
-        content_list.append(ContentElement(type="status", status=status, attributes=dict(element.attrib)))
+            for child in element:
+                child_tag = self._get_tag_name(child)
+                if child_tag == "task-id":
+                    task_id = self._extract_text_content(child)
+                elif child_tag == "task-uuid":
+                    uuid = self._extract_text_content(child)
+                elif child_tag == "task-status":
+                    status_text = self._extract_text_content(child)
+                    status = TaskListItemStatus(status_text)
+                elif child_tag == "task-body":
+                    children = self._parse_children(child)
 
-    def _handle_code_macro(self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]) -> None:
-        code_block = CodeBlock(
-            language=macro.parameters.get("language"),
-            title=macro.parameters.get("title"),
-            collapse=macro.parameters.get("collapse") == "true",
-            linenumbers=macro.parameters.get("linenumbers") == "true",
-            theme=macro.parameters.get("theme"),
-            breakout_mode=macro.parameters.get("breakoutMode"),
-            breakout_width=macro.parameters.get("breakoutWidth"),
-            content=macro.body or "",
-        )
-        content_list.append(ContentElement(type="code_block", code_block=code_block, attributes=dict(element.attrib)))
+            return ListItem(task_id=task_id, uuid=uuid, status=status, children=children)
+        else:
+            return ListItem(children=self._parse_children(element))
 
-    def _handle_jira_macro(self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]) -> None:
-        jira_macro = JiraMacro(
-            key=macro.parameters.get("key", ""),
-            server_id=macro.parameters.get("serverId", ""),
-            server=macro.parameters.get("server", ""),
-        )
-        content_list.append(ContentElement(type="jira_macro", jira_macro=jira_macro, attributes=dict(element.attrib)))
+    def _parse_external_link(self, element: ET.Element) -> LinkElement:
+        """Parse external <a> links."""
+        href = self._get_attr(element, "href")
 
-    def _handle_task_list_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        task_list = TaskList(local_id=macro.macro_id)
+        if href and href.startswith("mailto:"):
+            link_type = LinkType.MAILTO
+        else:
+            link_type = LinkType.EXTERNAL
 
-        for child in element:
-            if self._get_local_name(child.tag) in ("task-item", "ac:task-item"):
-                task_item = TaskItem(
-                    local_id=self._get_attribute(child, "local-id") or "",
-                    task_id=self._get_attribute(child, "task-id") or "",
-                    completed=self._get_attribute(child, "completed") == "true",
-                    content=self._extract_text(child),
-                )
-                task_list.items.append(task_item)
+        return LinkElement(type=link_type, href=href, children=self._parse_children(element))
 
-        content_list.append(ContentElement(type="task_list", task_list=task_list, attributes=dict(element.attrib)))
+    def _parse_link(self, element: ET.Element) -> LinkElement:
+        """Parse ac:link elements."""
+        anchor = self._get_attr(element, "anchor")
 
-    def _parse_link(self, element: _Element, content_list: list[ContentElement]) -> None:
-        link = Link(
-            card_appearance=element.get("data-card-appearance"),
-            anchor=self._get_attribute(element, "anchor"),
-        )
+        children = self._parse_children(element)
 
-        for child in element:
-            self._process_link_child(child, link)
+        link_type = LinkType.EXTERNAL
+        if anchor:
+            link_type = LinkType.ANCHOR
+        else:
+            for child in children:
+                if hasattr(child, "type") and hasattr(child.type, "value"):
+                    if child.type.value == "page":
+                        link_type = LinkType.PAGE
+                        break
+                    elif child.type.value == "blog-post":
+                        link_type = LinkType.BLOG_POST
+                        break
+                    elif child.type.value == "user":
+                        link_type = LinkType.USER
+                        break
+                    elif child.type.value == "space":
+                        link_type = LinkType.SPACE
+                        break
+                    elif child.type.value == "attachment":
+                        link_type = LinkType.ATTACHMENT
+                        break
 
-        content_list.append(ContentElement(type="link", link=link, attributes=dict(element.attrib)))
+        return LinkElement(type=link_type, anchor=anchor, children=children)
 
-    def _process_link_child(self, child: _Element, link: Link) -> None:
-        child_tag = self._get_local_name(child.tag)
+    def _parse_link_body(self, element: ET.Element) -> Fragment:
+        """Parse ac:link-body elements as fragment containers for rich content."""
+        return Fragment(children=self._parse_children(element))
 
-        match child_tag:
-            case "user" | "ri:user":
-                link.user_reference = UserReference(
-                    account_id=self._get_attribute(child, "account-id") or "",
-                    local_id=self._get_attribute(child, "local-id"),
-                )
-            case "page" | "ri:page":
-                link.page_reference = PageReference(
-                    content_title=self._get_attribute(child, "content-title") or "",
-                    space_key=self._get_attribute(child, "space-key"),
-                    version_at_save=self._get_attribute(child, "version-at-save"),
-                )
-            case "attachment" | "ri:attachment":
-                link.attachment_reference = AttachmentReference(
-                    filename=self._get_attribute(child, "filename") or "",
-                    content_id=self._get_attribute(child, "content-id"),
-                    version_at_save=self._get_attribute(child, "version-at-save"),
-                )
-            case "url" | "ri:url":
-                link.url_reference = UrlReference(
-                    value=self._get_attribute(child, "value") or "",
-                )
-            case "blog-post" | "ri:blog-post":
-                link.blog_post_reference = BlogPostReference(
-                    content_title=self._get_attribute(child, "content-title") or "",
-                    space_key=self._get_attribute(child, "space-key"),
-                    posting_day=self._get_attribute(child, "posting-day"),
-                )
-            case "space" | "ri:space":
-                link.space_reference = SpaceReference(space_key=self._get_attribute(child, "space-key") or "")
-            case "content-entity" | "ri:content-entity":
-                link.content_entity_reference = ContentEntityReference(
-                    content_id=self._get_attribute(child, "content-id") or ""
-                )
-            case "shortcut" | "ri:shortcut":
-                link.shortcut_reference = ShortcutReference(
-                    key=self._get_attribute(child, "key") or "",
-                    parameter=self._get_attribute(child, "parameter") or "",
-                )
-            case "link-body" | "ac:link-body":
-                link.text = child.text or ""
-            case "plain-text-link-body" | "ac:plain-text-link-body":
-                link.text = child.text or ""
-            case _:
-                pass
+    def _parse_image(self, element: ET.Element) -> Image:
+        """Parse ac:image elements."""
+        src = self._get_attr(element, "src")
+        alt = self._get_attr(element, "alt")
+        title = self._get_attr(element, "title")
+        width = self._get_attr(element, "width")
+        height = self._get_attr(element, "height")
+        alignment = self._get_attr(element, "align")
+        layout = self._get_attr(element, "layout")
+        original_height = self._get_attr(element, "original-height")
+        original_width = self._get_attr(element, "original-width")
+        custom_width = self._get_attr(element, "custom-width")
 
-    def _parse_inline_comment(self, element: _Element, content_list: list[ContentElement]) -> None:
-        inline_comment = InlineComment(
-            ref=self._get_attribute(element, "ref") or "",
-            text=element.text or "",
-        )
-
-        content_list.append(
-            ContentElement(type="inline_comment", inline_comment=inline_comment, attributes=dict(element.attrib))
-        )
-
-    def _parse_emoticon(self, element: _Element, content_list: list[ContentElement]) -> None:
-        emoticon = Emoticon(
-            name=self._get_attribute(element, "name") or "",
-            emoji_shortname=self._get_attribute(element, "emoji-shortname"),
-            emoji_id=self._get_attribute(element, "emoji-id"),
-            emoji_fallback=self._get_attribute(element, "emoji-fallback"),
-        )
-
-        content_list.append(ContentElement(type="emoticon", emoticon=emoticon, attributes=dict(element.attrib)))
-
-    def _parse_placeholder(self, element: _Element, content_list: list[ContentElement]) -> None:
-        placeholder = Placeholder(
-            type=self._get_attribute(element, "type"),
-            text=element.text or "",
-        )
-
-        content_list.append(
-            ContentElement(type="placeholder", placeholder=placeholder, attributes=dict(element.attrib))
-        )
-
-    def _parse_image(self, element: _Element, content_list: list[ContentElement]) -> None:
-        image = Image(
-            alt=self._get_attribute(element, "alt"),
-            title=self._get_attribute(element, "title"),
-            width=self._get_attribute(element, "width"),
-            height=self._get_attribute(element, "height"),
-            alignment=self._get_attribute(element, "align"),
-            layout=self._get_attribute(element, "layout"),
-            original_height=self._get_attribute(element, "original-height"),
-            original_width=self._get_attribute(element, "original-width"),
-            custom_width=self._get_attribute(element, "custom-width") == "true",
-        )
+        filename = None
+        version_at_save = None
+        url_value = None
+        children = []
 
         for child in element:
-            self._process_media_child(child, image)
+            child_tag = self._get_tag_name(child)
 
-        content_list.append(ContentElement(type="image", image=image, attributes=dict(element.attrib)))
+            if child_tag == "attachment":
+                filename = self._get_attr(child, "filename")
+                version_at_save = self._get_attr(child, "version-at-save")
+            elif child_tag == "url":
+                url_value = self._get_attr(child, "value")
+            elif child_tag == "caption":
+                children = self._parse_children(child)
 
-    def _parse_table(self, element: _Element, content_list: list[ContentElement]) -> None:
-        table = Table(
-            width=element.get("data-table-width"),
-            layout=element.get("data-layout"),
-            local_id=self._get_attribute(element, "local-id"),
-        )
-
-        tbody = element.find(".//tbody")
-        if tbody is not None:
-            self._process_table_rows(tbody, table)
-
-        content_list.append(ContentElement(type="table", table=table, attributes=dict(element.attrib)))
-
-    def _process_table_rows(self, tbody: _Element, table: Table) -> None:
-        for row in tbody.findall(".//tr"):
-            cells = row.findall(".//td") + row.findall(".//th")
-            rich_row: list[list[ContentElement]] = []
-            for cell in cells:
-                cell_elements: list[ContentElement] = []
-                for child in cell:
-                    self._parse_element(child, cell_elements)
-                if not cell_elements:
-                    cell_elements.append(ContentElement(type="text", text=self._extract_text(cell)))
-                rich_row.append(cell_elements)
-            table.cells.append(rich_row)
-
-    def _parse_date(self, element: _Element, content_list: list[ContentElement]) -> None:
-        date = DateElement(datetime=element.get("datetime", ""))
-        content_list.append(ContentElement(type="date", date=date, attributes=dict(element.attrib)))
-
-    def _parse_anchor_link(self, element: _Element, content_list: list[ContentElement]) -> None:
-        link = Link(
-            url=element.get("href"),
-            text=self._extract_text(element),
-            card_appearance=element.get("data-card-appearance"),
-        )
-
-        content_list.append(ContentElement(type="link", link=link, attributes=dict(element.attrib)))
-
-    def _parse_text_element(self, element: _Element, content_list: list[ContentElement], tag: str) -> None:
-        children: list[ContentElement] = []
-        text_content = element.text or ""
-
-        for child in element:
-            self._parse_element(child, children)
-            if child.tail:
-                children.append(
-                    ContentElement(
-                        type="text",
-                        text=child.tail,
-                    )
-                )
-
-        content_list.append(
-            ContentElement(
-                type=tag,
-                text=text_content.strip() if text_content.strip() else None,
-                children=children,
-                attributes=dict(element.attrib),
-            )
-        )
-
-    def _parse_generic_element(self, element: _Element, content_list: list[ContentElement], tag: str) -> None:
-        children: list[ContentElement] = []
-        for child in element:
-            self._parse_element(child, children)
-
-        content_list.append(
-            ContentElement(type=tag, text=element.text, children=children, attributes=dict(element.attrib))
-        )
-
-    def _extract_text(self, element: _Element) -> str:
-        return "".join(element.itertext()).strip()
-
-    def _annotate_elements(self, elements: list[ContentElement]) -> None:
-        def walk(
-            el: ContentElement,
-            path: list[str | int],
-            idx: int,
-            heading_stack: list[str],
-            list_stack: list[str],
-            layout_ctx: dict[str, str | int | None] | None,
-        ) -> None:
-            el.path = path.copy()
-            el.sibling_index = idx
-            el.id = self._assign_id(el, path)
-            el.heading_scope_id = heading_stack[-1] if heading_stack else None
-            el.list_scope = {"type": list_stack[-1], "depth": len(list_stack)} if list_stack else {}
-            el.layout_scope = layout_ctx or {}
-            if el.type in {"h1", "h2", "h3", "h4", "h5", "h6"}:
-                heading_stack.append(el.id or "")
-            pushed_list = False
-            if el.type in {"ul", "ol"}:
-                list_stack.append(el.type)
-                pushed_list = True
-            for i, child in enumerate(el.children):
-                walk(child, path + ["children", i], i, heading_stack, list_stack, layout_ctx)
-            if el.layout_section is not None and hasattr(el, "layout_section"):
-                sec = el.layout_section
-                for ci, cell in enumerate(sec.cells):
-                    cell_ctx = {
-                        "section_type": getattr(sec, "type", None),
-                        "section_index": (el.sibling_index or 0),
-                        "cell_index": ci,
-                        "breakout_mode": getattr(sec, "breakout_mode", None),
-                        "breakout_width": getattr(sec, "breakout_width", None),
-                    }
-                    for k, cell_el in enumerate(cell.content):
-                        walk(cell_el, path + ["cells", ci, "content", k], k, heading_stack, list_stack, cell_ctx)
-            if el.type in {"h1", "h2", "h3", "h4", "h5", "h6"} and heading_stack:
-                heading_stack.pop()
-            if pushed_list and list_stack:
-                list_stack.pop()
-
-        for i, el in enumerate(elements):
-            walk(el, ["content", i], i, [], [], {})
-
-    def _compute_element_id(self, path: list[str | int]) -> str:
-        data = "/".join(str(p) for p in path)
-        return f"el:{abs(hash(data))}"
-
-    def _assign_id(self, el: ContentElement, path: list[str | int]) -> str:
-        if el.link and el.link.kind == "page" and el.link.page_reference:
-            ct = el.link.page_reference.content_title
-            sk = el.link.page_reference.space_key or ""
-            return f"page://{sk}/{ct}"
-        if el.link and el.link.kind == "content_entity" and el.link.content_entity_reference:
-            return f"contentid://{el.link.content_entity_reference.content_id}"
-        if el.link and el.link.kind == "user" and el.link.user_reference:
-            if el.link.user_reference.account_id:
-                return f"user://{el.link.user_reference.account_id}"
-        if el.link and el.link.kind == "attachment" and el.link.attachment_reference:
-            ar = el.link.attachment_reference
-            ver = f"@v{ar.version_at_save}" if ar.version_at_save is not None else ""
-            return f"attach://{ar.filename}{ver}"
-        return self._compute_element_id(path)
-
-    def _parse_task(self, element: _Element, content_list: list[ContentElement]) -> None:
-        task = Task(
-            local_id=self._get_attribute(element, "local-id") or "",
-            task_id=self._get_attribute(element, "task-id") or "",
-            status=self._get_attribute(element, "status") or "incomplete",
-            body=self._extract_text(element),
-        )
-
-        content_list.append(ContentElement(type="task", task=task, attributes=dict(element.attrib)))
-
-    def _parse_i18n(self, element: _Element, content_list: list[ContentElement]) -> None:
-        i18n = I18nElement(
-            key=self._get_attribute(element, "key") or "",
-        )
-
-        content_list.append(ContentElement(type="i18n", i18n=i18n, attributes=dict(element.attrib)))
-
-    def _parse_adf_extension(self, element: _Element, content_list: list[ContentElement]) -> None:
-        parameters: dict[str, str] = {}
-        content = ""
-        nested_nodes: list[ContentElement] = []
-        decision_node_detected = False
-        decision_local_id: str | None = None
-
-        for child in element:
-            child_tag = self._get_local_name(child.tag)
-            if child_tag in ("parameter", "ac:parameter"):
-                param_name = self._get_attribute(child, "name") or ""
-                parameters[param_name] = child.text or ""
-            elif child_tag in ("content", "ac:content"):
-                for grandchild in child:
-                    self._parse_element(grandchild, nested_nodes)
-                content = self._extract_text(child)
-            elif child_tag in ("adf-node", "ac:adf-node"):
-                if (self._get_attribute(child, "type") or "") == "decision-list":
-                    decision_node_detected = True
-                    decision_local_id = self._get_attribute(child, "local-id") or ""
-                self._parse_element(child, nested_nodes)
-            elif child_tag in ("adf-fallback", "ac:adf-fallback"):
-                if decision_node_detected:
-                    items: list[DecisionItem] = []
-                    for li in child.findall(".//li"):
-                        text = self._extract_text(li)
-                        if text:
-                            items.append(DecisionItem(state="DECIDED", content=text))
-                    if items:
-                        decision_list = DecisionList(local_id=decision_local_id or "", items=items)
-                        content_list.append(
-                            ContentElement(type="decision_list", decision_list=decision_list, attributes={})
-                        )
-                self._parse_element(child, nested_nodes)
-
-        adf_extension = AdfExtension(
-            extension_type=self._get_attribute(element, "extension-type"),
-            extension_key=self._get_attribute(element, "extension-key"),
-            parameters=parameters,
-            content=content,
-        )
-
-        content_list.append(
-            ContentElement(type="adf_extension", adf_extension=adf_extension, attributes=dict(element.attrib))
-        )
-        content_list.extend(nested_nodes)
-
-    def _handle_panel_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        panel_children: list[ContentElement] = []
-        for child in element:
-            if self._get_local_name(child.tag) in ("rich-text-body", "ac:rich-text-body"):
-                for body_child in child:
-                    self._parse_element(body_child, panel_children)
-
-        panel = Panel(
-            title=macro.parameters.get("title"),
-            border_style=macro.parameters.get("borderStyle"),
-            border_color=macro.parameters.get("borderColor"),
-            title_bg_color=macro.parameters.get("titleBGColor"),
-            title_color=macro.parameters.get("titleColor"),
-            bg_color=macro.parameters.get("bgColor"),
-            content=macro.body or "",
-            icon=macro.parameters.get("panelIcon"),
-            icon_id=macro.parameters.get("panelIconId"),
-            icon_text=macro.parameters.get("panelIconText"),
-            children=panel_children,
-        )
-        content_list.append(ContentElement(type="panel", panel=panel, attributes=dict(element.attrib)))
-
-    def _handle_notification_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        notification_macro = NotificationMacro(
-            macro_type=macro.name,
-            content=macro.body or "",
-        )
-        content_list.append(
-            ContentElement(
-                type="notification_macro", notification_macro=notification_macro, attributes=dict(element.attrib)
-            )
-        )
-
-    def _handle_view_file_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        view_file_macro = ViewFileMacro(
-            name=macro.parameters.get("name", ""),
-            version_at_save=macro.parameters.get("version-at-save"),
-            attachment_filename=macro.parameters.get("name__attachment_filename"),
-            attachment_version_at_save=macro.parameters.get("name__attachment_version_at_save"),
-        )
-        content_list.append(
-            ContentElement(type="view_file_macro", view_file_macro=view_file_macro, attributes=dict(element.attrib))
-        )
-
-    def _handle_gadget_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        gadget_macro = GadgetMacro(
-            url=macro.parameters.get("url", ""),
-            layout=macro.layout,
-            local_id=self._get_attribute(element, "local-id"),
-        )
-        content_list.append(
-            ContentElement(type="gadget_macro", gadget_macro=gadget_macro, attributes=dict(element.attrib))
-        )
-
-    def _handle_expand_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        expand_children: list[ContentElement] = []
-        for child in element:
-            if self._get_local_name(child.tag) in ("rich-text-body", "ac:rich-text-body"):
-                for body_child in child:
-                    self._parse_element(body_child, expand_children)
-
-        expand_macro = ExpandMacro(
-            title=macro.parameters.get("title", ""),
-            breakout_width=macro.parameters.get("breakoutWidth"),
-            content=macro.body or "",
-            children=expand_children,
-        )
-        content_list.append(
-            ContentElement(type="expand_macro", expand_macro=expand_macro, attributes=dict(element.attrib))
-        )
-
-    def _handle_toc_macro(self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]) -> None:
-        toc_macro = TocMacro(
-            style=macro.parameters.get("style"),
-            local_id=self._get_attribute(element, "local-id"),
-        )
-        content_list.append(ContentElement(type="toc_macro", toc_macro=toc_macro, attributes=dict(element.attrib)))
-
-    def _handle_anchor_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        anchor = AnchorMacro(anchor=macro.parameters.get("anchor", ""))
-        content_list.append(ContentElement(type="anchor_macro", anchor_macro=anchor, attributes=dict(element.attrib)))
-
-    def _handle_excerpt_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        hidden = macro.parameters.get("hidden") == "true"
-        children: list[ContentElement] = []
-        for child in element:
-            if self._get_local_name(child.tag) in ("rich-text-body", "ac:rich-text-body"):
-                for body_child in child:
-                    self._parse_element(body_child, children)
-        excerpt = ExcerptMacro(
-            hidden=hidden,
-            atlassian_macro_output_type=element.get("ac:macro-output-type"),
-            body=macro.body or "",
+        return Image(
+            src=src,
+            alt=alt,
+            title=title,
+            width=width,
+            height=height,
+            alignment=alignment,
+            layout=layout,
+            original_height=original_height,
+            original_width=original_width,
+            custom_width=custom_width == "true" if custom_width else None,
+            filename=filename,
+            version_at_save=version_at_save,
+            url_value=url_value,
             children=children,
         )
-        content_list.append(
-            ContentElement(type="excerpt_macro", excerpt_macro=excerpt, attributes=dict(element.attrib))
+
+    def _parse_emoticon(self, element: ET.Element) -> Emoticon:
+        """Parse ac:emoticon elements."""
+        name = self._get_attr(element, "name")
+        emoji_shortname = self._get_attr(element, "emoji-shortname")
+        emoji_id = self._get_attr(element, "emoji-id")
+        emoji_fallback = self._get_attr(element, "emoji-fallback")
+
+        return Emoticon(
+            name=name or "", emoji_shortname=emoji_shortname, emoji_id=emoji_id, emoji_fallback=emoji_fallback
         )
 
-    def _handle_excerpt_include_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        include = ExcerptIncludeMacro(page=macro.parameters.get("page", ""))
-        content_list.append(
-            ContentElement(type="excerpt_include_macro", excerpt_include_macro=include, attributes=dict(element.attrib))
+    def _parse_placeholder(self, element: ET.Element) -> PlaceholderElement:
+        """Parse placeholder elements."""
+        text = self._extract_text_content(element)
+        return PlaceholderElement(text=text)
+
+    def _parse_time(self, element: ET.Element) -> Time:
+        """Parse time elements."""
+        datetime = self._get_attr(element, "datetime")
+        return Time(datetime=datetime)
+
+    def _parse_resource_identifier(self, element: ET.Element) -> ResourceIdentifier:
+        """Parse ri:* resource identifier elements."""
+        tag = self._get_tag_name(element)
+        resource_type = ResourceIdentifierType(tag)
+
+        space_key = self._get_attr(element, "space-key")
+        content_title = self._get_attr(element, "content-title")
+        content_id = self._get_attr(element, "content-id")
+
+        posting_day = self._get_attr(element, "posting-day")
+        filename = self._get_attr(element, "filename")
+        value = self._get_attr(element, "value")
+        key = self._get_attr(element, "key")
+        parameter = self._get_attr(element, "parameter")
+        account_id = self._get_attr(element, "account-id")
+        local_id = self._get_attr(element, "local-id")
+        userkey = self._get_attr(element, "userkey")
+        version_at_save = self._get_attr(element, "version-at-save")
+
+        return ResourceIdentifier(
+            type=resource_type,
+            space_key=space_key,
+            content_title=content_title,
+            content_id=content_id,
+            posting_day=posting_day,
+            filename=filename,
+            value=value,
+            key=key,
+            parameter=parameter,
+            account_id=account_id,
+            local_id=local_id,
+            userkey=userkey,
+            version_at_save=version_at_save,
         )
 
-    def _handle_page_properties_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        hidden = macro.parameters.get("hidden") == "true"
-        children: list[ContentElement] = []
+    def _parse_table(self, element: ET.Element) -> Table:
+        """Parse table elements."""
+        width = self._get_attr(element, "data-table-width")
+        layout = self._get_attr(element, "data-layout")
+        local_id = self._get_attr(element, "local-id")
+        display_mode = self._get_attr(element, "data-table-display-mode")
+
+        return Table(
+            width=width,
+            layout=layout,
+            local_id=local_id,
+            display_mode=display_mode,
+            children=self._parse_children(element),
+        )
+
+    def _parse_table_body(self, element: ET.Element) -> Fragment:
+        """Parse tbody elements as fragment containers."""
+        return Fragment(children=self._parse_children(element))
+
+    def _parse_table_row(self, element: ET.Element) -> TableRow:
+        """Parse tr elements."""
+        return TableRow(children=self._parse_children(element))
+
+    def _parse_table_cell(self, element: ET.Element) -> TableCell:
+        """Parse th/td elements."""
+        tag = self._get_tag_name(element)
+        rowspan = self._get_attr(element, "rowspan")
+        colspan = self._get_attr(element, "colspan")
+        styles = self._parse_css_styles(element)
+
+        return TableCell(
+            is_header=tag == "th",
+            rowspan=int(rowspan) if rowspan else None,
+            colspan=int(colspan) if colspan else None,
+            styles=styles,
+            children=self._parse_children(element),
+        )
+
+    def _parse_macro(self, element: ET.Element) -> Node | None:
+        """Parse simple macros by dispatching to specific handlers."""
+        name = self._get_attr(element, "name") or ""
+        parser = self._macro_parsers.get(name)
+
+        if parser:
+            return parser(element)
+
+        self.diagnostics.append(f"unknown_macro:{name}")
+        return None
+
+    def _parse_structured_macro(self, element: ET.Element) -> Node | None:
+        """Parse structured macros by dispatching to specific handlers."""
+        name = self._get_attr(element, "name") or ""
+        parser = self._macro_parsers.get(name)
+
+        if parser:
+            return parser(element)
+
+        self.diagnostics.append(f"unknown_macro:{name}")
+        return None
+
+    def _parse_adf_extension(self, element: ET.Element) -> Node | None:
+        """Parse ADF extension elements that can contain various types of content."""
+        adf_node = self._find_child_by_tag(element, "adf-node")
+        if adf_node is None:
+            return None
+
+        node_type = self._get_attr(adf_node, "type")
+
+        if node_type == "panel":
+            return self._parse_adf_panel(adf_node)
+        elif node_type == "decision-list":
+            return self._parse_adf_decision_list(adf_node)
+        elif node_type == "decision-item":
+            return self._parse_adf_decision_item(adf_node)
+
+        self.diagnostics.append(f"unknown_adf_node_type:{node_type}")
+        return None
+
+    def _parse_adf_panel(self, adf_node: ET.Element) -> PanelMacro:
+        """Parse ADF panel node into PanelMacro."""
+        panel_type_name = "panel"
+        bg_color = None
+
+        for attr_elem in adf_node:
+            if self._get_tag_name(attr_elem) == "adf-attribute":
+                key = self._get_attr(attr_elem, "key")
+                value = self._extract_text_content(attr_elem)
+
+                if key == "panel-type":
+                    panel_type_name = value
+                elif key == "bg-color" or key == "bgColor":
+                    bg_color = value
+
+        if panel_type_name == "note":
+            panel_type = PanelMacroType.NOTE
+        else:
+            panel_type = PanelMacroType.PANEL
+
+        children = []
+        adf_content = self._find_child_by_tag(adf_node, "adf-content")
+        if adf_content is not None:
+            children = self._parse_children(adf_content)
+
+        return PanelMacro(
+            type=panel_type,
+            bg_color=bg_color,
+            panel_icon=None,
+            panel_icon_id=None,
+            panel_icon_text=None,
+            children=children,
+        )
+
+    def _parse_adf_decision_list(self, adf_node: ET.Element) -> DecisionList:
+        """Parse ADF decision-list node into DecisionList."""
+        local_id = None
+
+        for attr_elem in adf_node:
+            if self._get_tag_name(attr_elem) == "adf-attribute":
+                key = self._get_attr(attr_elem, "key")
+                value = self._extract_text_content(attr_elem)
+
+                if key == "local-id":
+                    local_id = value
+
+        children = []
+        for child in adf_node:
+            if self._get_tag_name(child) == "adf-node":
+                decision_item = self._parse_adf_decision_item(child)
+                if decision_item:
+                    children.append(decision_item)
+
+        return DecisionList(local_id=local_id, children=children)
+
+    def _parse_adf_decision_item(self, adf_node: ET.Element) -> DecisionListItem:
+        """Parse ADF decision-item node into DecisionListItem."""
+        local_id = None
+        state = None
+
+        for attr_elem in adf_node:
+            if self._get_tag_name(attr_elem) == "adf-attribute":
+                key = self._get_attr(attr_elem, "key")
+                value = self._extract_text_content(attr_elem)
+
+                if key == "local-id":
+                    local_id = value
+                elif key == "state":
+                    if value in ["DECIDED", "PENDING"]:
+                        state = DecisionListItemState(value)
+
+        children = []
+        adf_content = self._find_child_by_tag(adf_node, "adf-content")
+        if adf_content is not None:
+            children = self._parse_children(adf_content)
+
+        return DecisionListItem(local_id=local_id, state=state, children=children)
+
+    def _parse_panel_macro(self, element: ET.Element) -> PanelMacro:
+        """Parse panel macro elements (panel, tip, note, warning, info)."""
+        name = self._get_attr(element, "name") or ""
+
+        if name == "tip":
+            panel_type = PanelMacroType.SUCCESS
+        elif name == "note":
+            panel_type = PanelMacroType.WARNING
+        elif name == "warning":
+            panel_type = PanelMacroType.ERROR
+        elif name == "info":
+            panel_type = PanelMacroType.INFO
+        else:
+            panel_type = PanelMacroType.PANEL
+
+        bg_color = None
+        panel_icon = None
+        panel_icon_id = None
+        panel_icon_text = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            param_value = self._extract_text_content(param)
+
+            if param_name == "bgColor":
+                bg_color = param_value
+            elif param_name == "panelIcon":
+                panel_icon = param_value
+            elif param_name == "panelIconId":
+                panel_icon_id = param_value
+            elif param_name == "panelIconText":
+                panel_icon_text = param_value
+
+        children = []
+        rich_text_body = self._find_child_by_tag(element, "rich-text-body")
+        if rich_text_body is not None:
+            children = self._parse_children(rich_text_body)
+
+        return PanelMacro(
+            type=panel_type,
+            bg_color=bg_color,
+            panel_icon=panel_icon,
+            panel_icon_id=panel_icon_id,
+            panel_icon_text=panel_icon_text,
+            children=children,
+        )
+
+    def _parse_code_macro(self, element: ET.Element) -> CodeMacro:
+        """Parse code macro elements."""
+        language = None
+        breakout_mode = None
+        breakout_width = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            param_value = self._extract_text_content(param)
+
+            if param_name == "language":
+                language = param_value
+            elif param_name == "breakoutMode":
+                breakout_mode = param_value
+            elif param_name == "breakoutWidth":
+                breakout_width = param_value
+
+        code = ""
+        plain_text_body = self._find_child_by_tag(element, "plain-text-body")
+        if plain_text_body is not None:
+            code = self._extract_text_content(plain_text_body)
+
+        return CodeMacro(language=language, breakout_mode=breakout_mode, breakout_width=breakout_width, code=code)
+
+    def _parse_details_macro(self, element: ET.Element) -> DetailsMacro:
+        """Parse details macro elements."""
+        children = []
+        rich_text_body = self._find_child_by_tag(element, "rich-text-body")
+        if rich_text_body is not None:
+            children = self._parse_children(rich_text_body)
+
+        return DetailsMacro(children=children)
+
+    def _parse_expand_macro(self, element: ET.Element) -> ExpandMacro:
+        """Parse expand macro elements."""
+        title = None
+        breakout_width = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            param_value = self._extract_text_content(param)
+
+            if param_name == "title":
+                title = param_value
+            elif param_name == "breakoutWidth":
+                breakout_width = param_value
+
+        children = []
+        rich_text_body = self._find_child_by_tag(element, "rich-text-body")
+        if rich_text_body is not None:
+            children = self._parse_children(rich_text_body)
+
+        return ExpandMacro(title=title, breakout_width=breakout_width, children=children)
+
+    def _parse_status_macro(self, element: ET.Element) -> StatusMacro:
+        """Parse status macro elements."""
+        title = None
+        colour = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            param_value = self._extract_text_content(param)
+
+            if param_name == "title":
+                title = param_value
+            elif param_name == "colour":
+                colour = param_value
+
+        return StatusMacro(title=title, colour=colour)
+
+    def _parse_toc_macro(self, element: ET.Element) -> TocMacro:
+        """Parse table of contents macro elements."""
+        style = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            param_value = self._extract_text_content(param)
+
+            if param_name == "style":
+                style = param_value
+
+        return TocMacro(style=style)
+
+    def _parse_jira_macro(self, element: ET.Element) -> JiraMacro:
+        """Parse JIRA macro elements."""
+        key = None
+        server_id = None
+        server = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            param_value = self._extract_text_content(param)
+
+            if param_name == "key":
+                key = param_value
+            elif param_name == "serverId":
+                server_id = param_value
+            elif param_name == "server":
+                server = param_value
+
+        return JiraMacro(key=key, server_id=server_id, server=server)
+
+    def _parse_include_macro(self, element: ET.Element) -> IncludeMacro:
+        """Parse include macro elements."""
+        children = []
+        space_key = None
+        content_title = None
+        version_at_save = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            if param_name == "":
+                children = self._parse_children(param)
+                for child in children:
+                    if hasattr(child, "space_key"):
+                        space_key = child.space_key
+                    if hasattr(child, "content_title"):
+                        content_title = child.content_title
+                    if hasattr(child, "version_at_save"):
+                        version_at_save = child.version_at_save
+
+        return IncludeMacro(
+            space_key=space_key, content_title=content_title, version_at_save=version_at_save, children=children
+        )
+
+    def _parse_tasks_report_macro(self, element: ET.Element) -> TasksReportMacro:
+        """Parse tasks-report-macro elements."""
+        spaces = None
+        is_missing_required_parameters = False
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            param_value = self._extract_text_content(param)
+
+            if param_name == "spaces":
+                spaces = param_value
+            elif param_name == "isMissingRequiredParameters":
+                is_missing_required_parameters = param_value.lower() == "true"
+
+        return TasksReportMacro(spaces=spaces, is_missing_required_parameters=is_missing_required_parameters)
+
+    def _parse_excerpt_include_macro(self, element: ET.Element) -> ExcerptIncludeMacro:
+        """Parse excerpt-include macro elements."""
+        children = []
+        space_key = None
+        content_title = None
+        posting_day = None
+        version_at_save = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            if param_name == "":
+                children = self._parse_children(param)
+                for child in children:
+                    if hasattr(child, "space_key"):
+                        space_key = child.space_key
+                    if hasattr(child, "content_title"):
+                        content_title = child.content_title
+                    if hasattr(child, "posting_day"):
+                        posting_day = child.posting_day
+                    if hasattr(child, "version_at_save"):
+                        version_at_save = child.version_at_save
+
+        return ExcerptIncludeMacro(
+            space_key=space_key,
+            content_title=content_title,
+            posting_day=posting_day,
+            version_at_save=version_at_save,
+            children=children,
+        )
+
+    def _parse_attachments_macro(self, element: ET.Element) -> AttachmentsMacro:
+        """Parse attachments macro elements."""
+        return AttachmentsMacro()
+
+    def _parse_viewpdf_macro(self, element: ET.Element) -> ViewPdfMacro:
+        """Parse viewpdf macro elements."""
+        filename = None
+        version_at_save = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            if param_name == "name":
+                for child in param:
+                    if self._get_tag_name(child) == "attachment":
+                        filename = self._get_attr(child, "filename")
+                        version_at_save = self._get_attr(child, "version-at-save")
+
+        return ViewPdfMacro(filename=filename, version_at_save=version_at_save)
+
+    def _parse_view_file_macro(self, element: ET.Element) -> ViewFileMacro:
+        """Parse view-file macro elements."""
+        filename = None
+        version_at_save = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            if param_name == "name":
+                for child in param:
+                    if self._get_tag_name(child) == "attachment":
+                        filename = self._get_attr(child, "filename")
+                        version_at_save = self._get_attr(child, "version-at-save")
+
+        return ViewFileMacro(filename=filename, version_at_save=version_at_save)
+
+    def _parse_profile_macro(self, element: ET.Element) -> ProfileMacro:
+        """Parse profile macro elements."""
+        children = []
+        account_id = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            if param_name == "user":
+                children = self._parse_children(param)
+                for child in children:
+                    if hasattr(child, "account_id"):
+                        account_id = child.account_id
+
+        return ProfileMacro(account_id=account_id, children=children)
+
+    def _parse_anchor_macro(self, element: ET.Element) -> AnchorMacro:
+        """Parse anchor macro elements."""
+        anchor_name = None
+
+        for param in self._iter_parameters(element):
+            param_name = self._get_attr(param, "name")
+            param_value = self._extract_text_content(param)
+
+            if param_name == "":
+                anchor_name = param_value
+
+        return AnchorMacro(anchor_name=anchor_name)
+
+    def _parse_excerpt_macro(self, element: ET.Element) -> ExcerptMacro:
+        """Parse excerpt macro elements."""
+        children = []
+        rich_text_body = self._find_child_by_tag(element, "rich-text-body")
+        if rich_text_body is not None:
+            children = self._parse_children(rich_text_body)
+
+        return ExcerptMacro(children=children)
+
+    def _get_tag_name(self, element: ET.Element) -> str:
+        """Extract tag name without namespace prefix."""
+        tag = element.tag
+        return tag.split("}", 1)[1] if "}" in tag else tag
+
+    def _get_attr(self, element: ET.Element, attr_name: str) -> str | None:
+        """Get attribute value handling multiple namespace variants."""
+        value = element.attrib.get(attr_name)
+        if value is not None:
+            return value
+
+        for ns in [self.NS_AC, self.NS_RI, self.NS_AT]:
+            value = element.attrib.get(f"{{{ns}}}{attr_name}")
+            if value is not None:
+                return value
+
+        return None
+
+    def _find_child_by_tag(self, element: ET.Element, tag_name: str) -> ET.Element | None:
+        """Find first direct child with given tag name."""
         for child in element:
-            if self._get_local_name(child.tag) in ("rich-text-body", "ac:rich-text-body"):
-                for body_child in child:
-                    self._parse_element(body_child, children)
-        ppm = PagePropertiesMacro(
-            id=macro.parameters.get("id"), hidden=hidden, body=macro.body or "", children=children
-        )
-        content_list.append(
-            ContentElement(type="page_properties_macro", page_properties_macro=ppm, attributes=dict(element.attrib))
-        )
+            if self._get_tag_name(child) == tag_name:
+                return child
+        return None
 
-    def _handle_page_properties_report_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        labels = [label.strip() for label in (macro.parameters.get("labels", "")).split(",") if label.strip()]
-        ppr = PagePropertiesReportMacro(
-            id=macro.parameters.get("id"), labels=labels, space_key=macro.parameters.get("spaceKey")
-        )
-        content_list.append(
-            ContentElement(
-                type="page_properties_report_macro", page_properties_report_macro=ppr, attributes=dict(element.attrib)
-            )
-        )
+    def _extract_text_content(self, element: ET.Element) -> str:
+        """Extract all text content from element and descendants."""
+        parts: list[str] = []
 
-    def _handle_children_display_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        cd = ChildrenDisplayMacro(
-            depth=int(depth_val) if (depth_val := macro.parameters.get("depth")) else None,
-            excerpt=macro.parameters.get("excerpt"),
-            sort=macro.parameters.get("sort"),
-            reverse=(macro.parameters.get("reverse") == "true") if macro.parameters.get("reverse") else None,
-            parent=macro.parameters.get("parent"),
-        )
-        content_list.append(
-            ContentElement(type="children_display_macro", children_display_macro=cd, attributes=dict(element.attrib))
-        )
-
-    def _handle_attachments_macro(
-        self, macro: StructuredMacro, element: _Element, content_list: list[ContentElement]
-    ) -> None:
-        patterns = [p.strip() for p in (macro.parameters.get("patterns", "")).split(",") if p.strip()]
-        att = AttachmentsMacro(patterns=patterns, page=macro.parameters.get("page"))
-        content_list.append(
-            ContentElement(type="attachments_macro", attachments_macro=att, attributes=dict(element.attrib))
-        )
-
-    def _parse_task_list_container(self, element: _Element, content_list: list[ContentElement]) -> None:
-        tasks = []
+        if element.text:
+            parts.append(element.text)
 
         for child in element:
-            if self._get_local_name(child.tag) in ("task", "ac:task"):
-                task_id = ""
-                task_uuid = ""
-                status = "incomplete"
-                body = ""
+            parts.append(self._extract_text_content(child))
+            if child.tail:
+                parts.append(child.tail)
 
-                for task_child in child:
-                    child_tag = self._get_local_name(task_child.tag)
-                    if child_tag in ("task-id", "ac:task-id"):
-                        task_id = task_child.text or ""
-                    elif child_tag in ("task-uuid", "ac:task-uuid"):
-                        task_uuid = task_child.text or ""
-                    elif child_tag in ("task-status", "ac:task-status"):
-                        status = task_child.text or "incomplete"
-                    elif child_tag in ("task-body", "ac:task-body"):
-                        body = self._extract_text(task_child)
+        return "".join(parts)
 
-                tasks.append(TaskElement(task_id=task_id, task_uuid=task_uuid, status=status, body=body))
-
-        task_list_container = TaskListContainer(tasks=tasks)
-        content_list.append(
-            ContentElement(
-                type="task_list_container", task_list_container=task_list_container, attributes=dict(element.attrib)
-            )
-        )
-
-    def _parse_adf_node(self, element: _Element, content_list: list[ContentElement]) -> None:
-        node_type = self._get_attribute(element, "type") or ""
-        local_id = self._get_attribute(element, "local-id")
-        attributes = {}
-        content = ""
-        children: list[ContentElement] = []
-
+    def _iter_parameters(self, element: ET.Element) -> Iterator[ET.Element]:
+        """Iterate over parameter children of a macro element."""
         for child in element:
-            child_tag = self._get_local_name(child.tag)
-            if child_tag in ("adf-attribute", "ac:adf-attribute"):
-                key = self._get_attribute(child, "key") or ""
-                attributes[key] = child.text or ""
-            elif child_tag in ("adf-content", "ac:adf-content"):
-                content = self._extract_text(child)
-            elif child_tag in ("adf-node", "ac:adf-node"):
-                child_nodes: list[ContentElement] = []
-                self._parse_adf_node(child, child_nodes)
-                if child_nodes:
-                    adf_node = child_nodes[0].adf_node
-                    if adf_node and hasattr(adf_node, "children"):
-                        children.extend(
-                            [
-                                ContentElement(type="content", text=str(child), attributes={})
-                                for child in adf_node.children
-                            ]
-                        )
+            if self._get_tag_name(child) == "parameter":
+                yield child
 
-        if node_type == "decision-list":
-            decision_items = []
-            for li in element.findall(".//li"):
-                text = self._extract_text(li)
-                if text:
-                    decision_items.append(DecisionItem(local_id="", state="DECIDED", content=text))
-            decision_list = DecisionList(local_id=self._get_attribute(element, "local-id") or "", items=decision_items)
-            content_list.append(
-                ContentElement(type="decision_list", decision_list=decision_list, attributes=dict(element.attrib))
-            )
-            return
+    def _parse_css_styles(self, element: ET.Element) -> dict[str, str]:
+        """Parse all CSS styles from element's style attribute."""
+        style_attr = self._get_attr(element, "style") or ""
+        styles = {}
 
-        adf_node = AdfNode(type=node_type, local_id=local_id, attributes=attributes, content=content, children=children)
-        content_list.append(ContentElement(type="adf_node", adf_node=adf_node, attributes=dict(element.attrib)))
+        for declaration in style_attr.split(";"):
+            if ":" in declaration:
+                prop, value = declaration.split(":", 1)
+                prop = prop.strip().lower()
+                value = value.strip()
 
-    def _parse_adf_fallback(self, element: _Element, content_list: list[ContentElement]) -> None:
-        adf_fallback = AdfFallback(content=self._extract_text(element))
-        content_list.append(
-            ContentElement(type="adf_fallback", adf_fallback=adf_fallback, attributes=dict(element.attrib))
-        )
+                if prop and value:
+                    styles[prop] = value
 
-    def _parse_horizontal_rule(self, element: _Element, content_list: list[ContentElement]) -> None:
-        content_list.append(ContentElement(type="hr", attributes=dict(element.attrib)))
-
-    def _process_media_child(self, child: _Element, media_obj: Image) -> None:
-        """Process child elements for media objects (Image)."""
-        child_tag = self._get_local_name(child.tag)
-
-        if child_tag in ("attachment", "ri:attachment"):
-            media_obj.attachment_reference = AttachmentReference(
-                filename=self._get_attribute(child, "filename") or "",
-                content_id=self._get_attribute(child, "content-id"),
-                version_at_save=self._get_attribute(child, "version-at-save"),
-            )
-        elif child_tag in ("url", "ri:url"):
-            media_obj.url_reference = UrlReference(
-                value=self._get_attribute(child, "value") or "",
-            )
+        return styles
