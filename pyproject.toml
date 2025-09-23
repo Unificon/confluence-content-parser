@@ -1,6 +1,6 @@
 [project]
 name = "confluence-content-parser"
-version = "0.2.0"
+version = "0.2.1"
 description = "A Python library for parsing Confluence Storage Format content into structured data"
 readme = "README.md"
 authors = [

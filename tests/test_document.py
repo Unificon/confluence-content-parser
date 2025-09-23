@@ -8,6 +8,8 @@ from confluence_content_parser import (
     Fragment,
     HeadingElement,
     PlaceholderElement,
+    TextBreakElement,
+    TextEffectElement,
 )
 
 
@@ -65,6 +67,39 @@ class TestConfluenceDocument:
 
         placeholders = doc.find_all(PlaceholderElement)
         assert len(placeholders) == 0
+
+    def test_find_all_multiple_types(self):
+        """Test finding multiple node types in a single call."""
+        parser = ConfluenceParser()
+        content = "<h1>Title</h1><p>Paragraph</p><strong>Bold</strong>"
+        doc = parser.parse(content)
+
+        headings, paragraphs = doc.find_all(HeadingElement, TextBreakElement)
+        assert len(headings) == 1
+        assert len(paragraphs) == 1
+        assert isinstance(headings[0], HeadingElement)
+        assert isinstance(paragraphs[0], TextBreakElement)
+
+        headings, paragraphs, effects = doc.find_all(HeadingElement, TextBreakElement, TextEffectElement)
+        assert len(headings) == 1
+        assert len(paragraphs) == 1
+        assert len(effects) == 1
+
+    def test_find_all_multiple_types_empty_document(self):
+        """Test finding multiple types when document is empty."""
+        doc = ConfluenceDocument()
+
+        result = doc.find_all(HeadingElement)
+        assert result == []
+
+        headings, paragraphs = doc.find_all(HeadingElement, TextBreakElement)
+        assert headings == []
+        assert paragraphs == []
+
+        headings, paragraphs, effects = doc.find_all(HeadingElement, TextBreakElement, TextEffectElement)
+        assert headings == []
+        assert paragraphs == []
+        assert effects == []
 
     def test_walk_document(self):
         """Test walking through all nodes in document."""

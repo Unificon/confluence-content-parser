@@ -63,9 +63,31 @@ class TestNodeBasics:
         """Test find_all on empty node."""
         node = Node()
         results = node.find_all()
-        assert len(results) == 1  # The node itself is returned by walk()
+        assert len(results) == 1
         assert results[0] == node
         assert node.find_all(Text) == []
+
+    def test_node_find_all_multiple_types(self):
+        """Test find_all with multiple types on a node tree."""
+        text1 = Text(text="Hello")
+        text2 = Text(text="World")
+        container = ContainerElement(children=[text1, text2])
+
+        texts, containers = container.find_all(Text, ContainerElement)
+        assert len(texts) == 2
+        assert len(containers) == 1
+        assert texts[0] == text1
+        assert texts[1] == text2
+        assert containers[0] == container
+
+        texts, headings = container.find_all(Text, HeadingElement)
+        assert len(texts) == 2
+        assert len(headings) == 0
+
+        texts, containers, headings = container.find_all(Text, ContainerElement, HeadingElement)
+        assert len(texts) == 2
+        assert len(containers) == 1
+        assert len(headings) == 0
 
     def test_container_element_basics(self):
         """Test container element basic functionality."""

@@ -36,6 +36,37 @@ ConfluenceDocument
 
    .. automethod:: confluence_content_parser.document.ConfluenceDocument.find_all
 
+      Find nodes by type with support for multiple types in a single call.
+
+      **Multiple Type Search:**
+
+      The ``find_all`` method supports searching for multiple node types simultaneously:
+
+      .. code-block:: python
+
+         # Single type
+         headings = document.find_all(HeadingElement)
+
+         # Multiple types (up to 5 with full type inference)
+         headings, panels, images = document.find_all(HeadingElement, PanelMacro, Image)
+
+      **Type Safety Limitations:**
+
+      Due to current limitations in Python's type system (specifically with TypeVarTuple 
+      transformations), full type inference is supported for up to 5 node types. Beyond 
+      5 types, the method still works correctly at runtime but type checkers will fall 
+      back to more general typing.
+
+      .. code-block:: python
+
+         # Full type inference (recommended)
+         headings, panels, images, tables, links = document.find_all(HeadingElement, PanelMacro, 
+                                           Image, Table, LinkElement)
+
+         # Still works, but with general typing beyond 5 types
+         headings, panels, images, tables, links, codes = document.find_all(HeadingElement, PanelMacro, Image, 
+                                   Table, LinkElement, CodeMacro)
+
    .. automethod:: confluence_content_parser.document.ConfluenceDocument.walk
 
 ConfluenceParser
@@ -92,6 +123,10 @@ Node
    .. automethod:: confluence_content_parser.nodes.Node.to_text
 
    .. automethod:: confluence_content_parser.nodes.Node.find_all
+
+      Find nodes by type with support for multiple types in a single call.
+      See :meth:`confluence_content_parser.document.ConfluenceDocument.find_all` 
+      for detailed documentation on multiple type search and type safety limitations.
 
 ContainerElement
 ~~~~~~~~~~~~~~~

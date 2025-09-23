@@ -226,15 +226,19 @@ Document Statistics
        parser = ConfluenceParser()
        document = parser.parse(content)
 
+       # Efficient analysis with multiple-type searches
+       headings, links, images = document.find_all(HeadingElement, LinkElement, Image)
+       tables, lists, panels, codes = document.find_all(Table, ListElement, PanelMacro, CodeMacro)
+
        stats = {
            'total_nodes': len(list(document.walk())),
-           'headings': len(document.find_all(HeadingElement)),
-           'links': len(document.find_all(LinkElement)),
-           'images': len(document.find_all(Image)),
-           'tables': len(document.find_all(Table)),
-           'lists': len(document.find_all(ListElement)),
-           'panels': len(document.find_all(PanelMacro)),
-           'code_blocks': len(document.find_all(CodeMacro)),
+           'headings': len(headings),
+           'links': len(links),
+           'images': len(images),
+           'tables': len(tables),
+           'lists': len(lists),
+           'panels': len(panels),
+           'code_blocks': len(codes),
            'text_length': len(document.text),
            'diagnostics': document.metadata.get('diagnostics', [])
        }
@@ -361,14 +365,18 @@ Streaming Large Documents
        parser = ConfluenceParser()
        document = parser.parse(xml_content)
 
-       # Process headings only for outline
-       headings = document.find_all(HeadingElement)
+       # Efficient extraction of key elements for document outline
+       headings, panels, codes = document.find_all(HeadingElement, PanelMacro, CodeMacro)
        outline = []
 
        for heading in headings:
            level = int(heading.type.value[1])
            text = heading.to_text()
            outline.append(f"{'  ' * (level - 1)}- {text}")
+
+       # Add summary of other content
+       if panels or codes:
+           outline.append(f"Content: {len(panels)} panels, {len(codes)} code blocks")
 
        return outline
 
@@ -524,6 +532,23 @@ Unit Testing with Parser
            self.assertEqual(len(headings), 2)
            self.assertEqual(headings[0].to_text(), "Main Title")
            self.assertEqual(headings[1].to_text(), "Subtitle")
+
+       def test_multiple_type_search(self):
+           """Test multiple type search functionality."""
+           content = '''
+           <h1>Title</h1>
+           <ac:structured-macro ac:name="info">
+               <ac:rich-text-body><p>Info content</p></ac:rich-text-body>
+           </ac:structured-macro>
+           '''
+           document = self.parser.parse(content)
+
+           # Test multiple type search
+           headings, panels = document.find_all(HeadingElement, PanelMacro)
+           self.assertEqual(len(headings), 1)
+           self.assertEqual(len(panels), 1)
+           self.assertEqual(headings[0].to_text(), "Title")
+           self.assertIn("Info content", panels[0].to_text())
 
        def test_panel_macro(self):
            """Test panel macro parsing."""

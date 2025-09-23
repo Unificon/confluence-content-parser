@@ -129,9 +129,23 @@ def main():
         print(f"  {detail.to_text()}")
     print()
 
+    print("9. MULTIPLE TYPE SEARCH:")
+    # Find multiple element types at once
+    headings_multi, status_multi, placeholders_multi = document.find_all(
+        HeadingElement, StatusMacro, PlaceholderElement
+    )
+    print(f"  Found in one search: {len(headings_multi)} headings, {len(status_multi)} status elements, {len(placeholders_multi)} placeholders")
+
+    # Compare with individual searches (should match)
+    assert len(headings_multi) == len(headings)
+    assert len(status_multi) == len(status_elements)
+    assert len(placeholders_multi) == len(placeholders)
+    print("  ✓ Results match individual searches")
+    print()
+
     # Document statistics
     all_nodes = document.walk()
-    print("9. DOCUMENT STATISTICS:")
+    print("10. DOCUMENT STATISTICS:")
     print(f"  Total nodes: {len(all_nodes)}")
     print(f"  Headings: {len(headings)}")
     print(f"  Tables: {len(tables)}")
@@ -143,9 +157,9 @@ def main():
     # Check for any parsing issues
     diagnostics = document.metadata.get("diagnostics", [])
     if diagnostics:
-        print(f"\n10. PARSING DIAGNOSTICS: {diagnostics}")
+        print(f"\n11. PARSING DIAGNOSTICS: {diagnostics}")
     else:
-        print("\n10. PARSING: No issues detected ✓")
+        print("\n11. PARSING: No issues detected ✓")
 
 
 if __name__ == "__main__":
