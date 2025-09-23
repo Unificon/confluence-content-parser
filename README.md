@@ -66,6 +66,9 @@ from confluence_content_parser import HeadingElement, PanelMacro
 headings = document.find_all(HeadingElement)
 panels = document.find_all(PanelMacro)
 
+# Or find multiple types at once
+headings, panels = document.find_all(HeadingElement, PanelMacro)
+
 print(f"Found {len(headings)} headings and {len(panels)} panels")
 
 # Navigate the structure
@@ -177,6 +180,10 @@ all_lists = document.find_all(ListElement)
 task_lists = [lst for lst in all_lists if lst.type == ListType.TASK]
 for task_list in task_lists:
     print(f"Task list with {len(task_list.children)} tasks")
+
+# Analyze content structure efficiently
+images, tables, links = document.find_all(Image, Table, LinkElement)
+print(f"Document contains: {len(images)} images, {len(tables)} tables, {len(links)} links")
 
 # Walk through all nodes in the document
 for node in document.walk():

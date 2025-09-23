@@ -45,8 +45,11 @@ You can search for specific types of content within the document:
    for heading in headings:
        print(f"Heading: {heading.to_text()}")
 
+   # Find multiple types at once
+   headings, bold_elements = document.find_all(HeadingElement, TextEffectElement)
+   print(f"Found {len(headings)} headings and {len(bold_elements)} text effects")
+
    # Find all bold text
-   bold_elements = document.find_all(TextEffectElement)
    for element in bold_elements:
        if element.type.value == 'strong':
            print(f"Bold text: {element.to_text()}")

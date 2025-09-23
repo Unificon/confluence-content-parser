@@ -186,6 +186,10 @@ Filtering and Searching
    # Find by node type
    headings = document.find_all(HeadingElement)
 
+   # Find multiple types at once
+   headings, panels, images = document.find_all(HeadingElement, PanelMacro, Image)
+   print(f"Found {len(headings)} headings, {len(panels)} panels, {len(images)} images")
+
    # Find by multiple criteria using custom logic
    def is_important_content(node):
        if isinstance(node, PanelMacro):
@@ -195,6 +199,13 @@ Filtering and Searching
        return False
 
    important_nodes = [node for node in document.walk() if is_important_content(node)]
+
+   # Efficient content analysis with multiple types
+   tables, links, codes = document.find_all(Table, LinkElement, CodeMacro)
+   for table in tables:
+       # Analyze table structure
+       rows, cells = table.find_all(TableRow, TableCell)
+       print(f"Table: {len(rows)} rows, {len(cells)} cells")
 
 Text Extraction Strategies
 -------------------------
@@ -322,11 +333,20 @@ Best Practices
 4. **Leverage the node hierarchy** to understand content structure
 5. **Use find_all() for specific searches** rather than walking the entire tree
 6. **Consider performance** when processing large documents
+7. **Use multiple-type searches** for efficient content analysis
 
 .. code-block:: python
 
    # Good: Specific search
    code_blocks = document.find_all(CodeMacro)
 
+   # Better: Multiple types at once
+   codes, panels, tables = document.find_all(CodeMacro, PanelMacro, Table)
+
    # Less efficient: Walking entire tree
    code_blocks = [node for node in document.walk() if isinstance(node, CodeMacro)]
+
+   # Less efficient: Multiple individual searches
+   codes = document.find_all(CodeMacro)
+   panels = document.find_all(PanelMacro)
+   tables = document.find_all(Table)

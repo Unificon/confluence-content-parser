@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('../src'))
 project = 'Confluence Content Parser'
 copyright = '2025, Uladzislau Hubar'
 author = 'Uladzislau Hubar'
-release = '0.2.0'
+release = '0.2.1'
 
 # -- General configuration ---------------------------------------------------
 

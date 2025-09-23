@@ -139,16 +139,20 @@ def main():
     print("3. MACRO ANALYSIS:")
     from confluence_content_parser import AttachmentsMacro, CodeMacro, ExpandMacro, PanelMacro, StatusMacro
 
-    macro_types = [
-        (PanelMacro, "Panel"),
-        (CodeMacro, "Code"),
-        (ExpandMacro, "Expand"),
-        (StatusMacro, "Status"),
-        (AttachmentsMacro, "Attachments"),
+    # Find all macro types at once
+    panels, codes, expands, statuses, attachments = doc.find_all(
+        PanelMacro, CodeMacro, ExpandMacro, StatusMacro, AttachmentsMacro
+    )
+
+    macro_results = [
+        (panels, "Panel"),
+        (codes, "Code"),
+        (expands, "Expand"),
+        (statuses, "Status"),
+        (attachments, "Attachments"),
     ]
 
-    for macro_class, name in macro_types:
-        macros = doc.find_all(macro_class)
+    for macros, name in macro_results:
         print(f"   {name} macros: {len(macros)}")
         for macro in macros:
             if hasattr(macro, "title") and macro.title:
@@ -192,18 +196,18 @@ def main():
     print("5. MEDIA ELEMENTS:")
     from confluence_content_parser import Emoticon, Image, Time
 
-    images = doc.find_all(Image)
+    # Find all media types efficiently
+    images, emoticons, times = doc.find_all(Image, Emoticon, Time)
+
     print(f"   Images: {len(images)}")
     for img in images:
         if img.filename:
             print(f"     - {img.filename}")
 
-    emoticons = doc.find_all(Emoticon)
     print(f"   Emoticons: {len(emoticons)}")
     for emoticon in emoticons:
         print(f"     - {emoticon.name or emoticon.emoji_shortname}")
 
-    times = doc.find_all(Time)
     print(f"   Time elements: {len(times)}")
     for time_elem in times:
         print(f"     - {time_elem.datetime}")
@@ -219,11 +223,11 @@ def main():
 
     # 7. Nested content search
     print("7. NESTED CONTENT SEARCH:")
-    panels = doc.find_all(PanelMacro)
     for i, panel in enumerate(panels, 1):
-        nested_links = panel.find_all(LinkElement)
+        # Find multiple types within each panel
+        nested_links, nested_codes = panel.find_all(LinkElement, CodeMacro)
         nested_lists = panel.find_all()  # All nested elements
-        print(f"   Panel {i}: {len(nested_links)} links, {len(nested_lists)} total nested elements")
+        print(f"   Panel {i}: {len(nested_links)} links, {len(nested_codes)} code blocks, {len(nested_lists)} total nested elements")
     print()
 
     # 8. Document diagnostics
