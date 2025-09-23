@@ -4,7 +4,7 @@ Confluence Content Parser Documentation
 A Python library for parsing Atlassian Confluence storage format XML into a structured document tree.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 5
    :caption: Contents:
 
    installation
@@ -65,36 +65,37 @@ The library is built around three main components:
 Supported Elements
 ------------------
 
-The parser supports a wide range of Confluence elements:
+The parser supports a comprehensive range of Confluence elements:
 
 **Structure Elements**
-   * Layouts and layout sections
-   * Paragraphs and headings
-   * Lists (ordered, unordered, task lists)
-   * Tables with complex formatting
+   * Page layouts and layout sections (single, multi-column, etc.)
+   * Headings (H1-H6)
+   * Lists (ordered, unordered, task lists with completion status)
+   * Tables with complex formatting and metadata
+   * Decision lists for tracking decisions
 
 **Content Elements**
-   * Text formatting (bold, italic, underline, etc.)
-   * Links (internal and external)
-   * Images with captions
-   * Code blocks with syntax highlighting
+   * Text formatting (bold, italic, underline, strikethrough, monospace, etc.)
+   * Text breaks (paragraphs, line breaks, horizontal rules)
+   * Links (internal pages, external URLs, attachments, users, etc.)
+   * Images with captions and metadata
+   * Emoticons and time elements
+   * Placeholder elements
 
 **Macros**
-   * Panel macros (info, warning, error, etc.)
+   * Panel macros (info, note, warning, error, success, custom panels)
+   * Code blocks with syntax highlighting
+   * Status indicators
    * Expand/collapse sections
    * Table of contents
    * JIRA integration
-   * Include macros
-   * And many more...
+   * Include and excerpt macros
+   * Attachment listings
+   * PDF and file viewers
+   * User profiles and anchors
+   * Task reports
 
 License
 -------
 
 This project is licensed under the Apache License 2.0.
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

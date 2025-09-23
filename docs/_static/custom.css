@@ -1,0 +1,670 @@
+/* ===================================================================
+   Confluence Content Parser Documentation - Dark Theme
+   =================================================================== */
+
+/* Import Poppins font to match brand */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+/* ===================================================================
+   COLOR SYSTEM & VARIABLES
+   =================================================================== */
+
+:root {
+    /* Brand Colors */
+    --brand-primary: #EEFF5D;
+    --brand-secondary: #FF6B9D;
+    --brand-accent: #00E5FF;
+
+    /* Dark Theme Backgrounds */
+    --background: hsl(0, 0%, 6%);
+    --card: hsl(0, 0%, 6%);
+    --secondary: hsl(0, 0%, 10%);
+    --muted: hsl(0, 0%, 12%);
+    --border: hsl(0, 0%, 14%);
+
+    /* Text Colors */
+    --foreground: hsl(0, 0%, 98%);
+    --muted-foreground: hsl(0, 0%, 65%);
+
+    /* Interactive Colors */
+    --link-color: #4A9EFF;
+    --link-hover: #6BB6FF;
+    --link-visited: #9B59B6;
+    --accent-bg: hsl(0, 0%, 14%);
+    --hover-bg: hsl(0, 0%, 16%);
+
+    /* Code Colors */
+    --code-bg: hsl(0, 0%, 8%);
+    --code-border: hsl(0, 0%, 18%);
+
+    /* API Documentation Colors - Subtle scheme */
+    --api-class-name: var(--brand-primary); /* Brand yellow for class names */
+    --api-method-name: var(--foreground);    /* Regular white for methods */
+    --api-property-name: #FF69B4;            /* Soft pink for properties only */
+    --api-type: #9CDCFE;                     /* Subtle blue for types */
+    --api-keyword: #FFA07A;                  /* Light salmon for keywords */
+}
+
+/* ===================================================================
+   TYPOGRAPHY & FONTS
+   =================================================================== */
+
+body, .rst-content {
+    font-family: "Poppins", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+}
+
+/* ===================================================================
+   LAYOUT & BACKGROUND
+   =================================================================== */
+
+.wy-body-for-nav,
+.wy-nav-content-wrap,
+.wy-nav-content {
+    background: var(--background) !important;
+    color: var(--foreground) !important;
+}
+
+/* ===================================================================
+   NAVIGATION & SIDEBAR
+   =================================================================== */
+
+/* Sidebar */
+.wy-nav-side {
+    background: var(--secondary) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+.wy-side-nav-search {
+    background: var(--secondary) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+.wy-side-nav-search input[type=text] {
+    background: var(--muted) !important;
+    color: var(--foreground) !important;
+    border: 1px solid var(--border) !important;
+}
+
+.wy-side-nav-search input[type=text]:focus {
+    border-color: var(--link-color) !important;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2) !important;
+}
+
+/* Navigation Menu */
+.wy-menu-vertical a {
+    color: var(--muted-foreground) !important;
+}
+
+.wy-menu-vertical a:hover {
+    background: var(--hover-bg) !important;
+    color: var(--foreground) !important;
+}
+
+.wy-menu-vertical .current a,
+.wy-menu-vertical .current > a,
+.wy-menu-vertical li.toctree-l1.current > a,
+.wy-menu-vertical li.toctree-l2.current > a {
+    background: var(--accent-bg) !important;
+    color: var(--foreground) !important;
+    font-weight: 600 !important;
+    border-left: 3px solid var(--brand-primary) !important;
+    border-right: none !important;
+}
+
+.wy-menu-vertical li.toctree-l3.current > a {
+    background: var(--muted) !important;
+    color: var(--foreground) !important;
+    border-left: 2px solid var(--brand-primary) !important;
+}
+
+.wy-menu-vertical .caption {
+    color: var(--brand-primary) !important;
+    font-weight: 600 !important;
+}
+
+/* Top Navigation */
+.wy-nav-top {
+    background: var(--secondary) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+.wy-nav-top a {
+    color: var(--link-color) !important;
+}
+
+/* ===================================================================
+   CONTENT STYLING
+   =================================================================== */
+
+.rst-content {
+    color: var(--foreground) !important;
+}
+
+/* Headers */
+.rst-content h1, .rst-content h2, .rst-content h3,
+.rst-content h4, .rst-content h5, .rst-content h6 {
+    color: var(--brand-primary) !important;
+    font-weight: 600 !important;
+}
+
+/* Links */
+.rst-content a {
+    color: var(--link-color) !important;
+    text-decoration: underline !important;
+}
+
+.rst-content a:hover {
+    color: var(--link-hover) !important;
+}
+
+.rst-content a:visited {
+    color: var(--link-visited) !important;
+}
+
+/* Type Links (special styling for API docs) */
+.rst-content a.reference.internal,
+.rst-content a.reference.external {
+    color: var(--api-type) !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
+    border-bottom: 1px solid transparent !important;
+    transition: all 0.2s ease !important;
+    padding: 1px 2px !important;
+    border-radius: 3px !important;
+}
+
+.rst-content a.reference.internal:hover,
+.rst-content a.reference.external:hover {
+    color: var(--api-type) !important;
+    background: rgba(156, 220, 254, 0.1) !important;
+    border-bottom-color: var(--api-type) !important;
+}
+
+/* ===================================================================
+   CODE & SYNTAX HIGHLIGHTING
+   =================================================================== */
+
+/* Code Blocks */
+.rst-content pre,
+.rst-content .highlight {
+    background: var(--code-bg) !important;
+    border: 1px solid var(--code-border) !important;
+}
+
+.rst-content .highlight pre {
+    background: var(--code-bg) !important;
+}
+
+/* Inline Code */
+.rst-content code.literal {
+    background: var(--muted) !important;
+    color: #FFB366 !important;
+    padding: 2px 4px !important;
+    border-radius: 3px !important;
+    border: none !important;
+}
+
+/* Syntax Highlighting */
+.rst-content .highlight .c,
+.rst-content .highlight .cm,
+.rst-content .highlight .cp,
+.rst-content .highlight .c1 {
+    color: #6A9955 !important; /* Comments */
+}
+
+.rst-content .highlight .k,
+.rst-content .highlight .kc,
+.rst-content .highlight .kd,
+.rst-content .highlight .kn,
+.rst-content .highlight .kp,
+.rst-content .highlight .kr,
+.rst-content .highlight .kt {
+    color: #569CD6 !important; /* Keywords */
+}
+
+.rst-content .highlight .s,
+.rst-content .highlight .sb,
+.rst-content .highlight .sc,
+.rst-content .highlight .sd,
+.rst-content .highlight .s2,
+.rst-content .highlight .se,
+.rst-content .highlight .sh,
+.rst-content .highlight .si,
+.rst-content .highlight .sx,
+.rst-content .highlight .sr,
+.rst-content .highlight .s1,
+.rst-content .highlight .ss {
+    color: #CE9178 !important; /* Strings */
+}
+
+.rst-content .highlight .n,
+.rst-content .highlight .na,
+.rst-content .highlight .nc,
+.rst-content .highlight .nd,
+.rst-content .highlight .ne,
+.rst-content .highlight .nf,
+.rst-content .highlight .ni,
+.rst-content .highlight .nl,
+.rst-content .highlight .nn,
+.rst-content .highlight .nt,
+.rst-content .highlight .nv,
+.rst-content .highlight .nx {
+    color: var(--foreground) !important; /* Names */
+}
+
+.rst-content .highlight .mi,
+.rst-content .highlight .mf,
+.rst-content .highlight .mh,
+.rst-content .highlight .mo {
+    color: #B5CEA8 !important; /* Numbers */
+}
+
+.rst-content .highlight .o,
+.rst-content .highlight .ow,
+.rst-content .highlight .p {
+    color: var(--foreground) !important; /* Operators & Punctuation */
+}
+
+/* ===================================================================
+   API DOCUMENTATION (Major Section)
+   =================================================================== */
+
+/* API Container Elements */
+.rst-content dl.class,
+.rst-content dl.function,
+.rst-content dl.method,
+.rst-content dl.attribute,
+.rst-content dl.py.property {
+    margin-bottom: 24px !important;
+    display: block !important;
+}
+
+/* API Signatures (Headers) */
+.rst-content dl.class > dt {
+    background: var(--secondary) !important;
+    color: var(--foreground) !important;
+    border: none !important;
+    padding: 12px 16px !important;
+    margin-bottom: 0 !important;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    border-radius: 6px 6px 0 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+.rst-content dl.function > dt,
+.rst-content dl.method > dt,
+.rst-content dl.attribute > dt,
+.rst-content dl.py.property > dt {
+    background: var(--secondary) !important;
+    color: var(--foreground) !important;
+    border: 1px solid var(--border) !important;
+    border-left: 4px solid var(--brand-primary) !important;
+    padding: 12px 16px !important;
+    margin-bottom: 0 !important;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    border-radius: 6px 6px 0 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+/* API Content Areas */
+.rst-content dl.class > dd {
+    background: var(--background) !important;
+    border: none !important;
+    margin-left: 0 !important;
+    margin-bottom: 20px !important;
+    padding: 16px 20px !important;
+    color: var(--foreground) !important;
+    border-radius: 0 0 6px 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+.rst-content dl.function > dd,
+.rst-content dl.method > dd,
+.rst-content dl.attribute > dd,
+.rst-content dl.py.property > dd {
+    background: var(--background) !important;
+    border: 1px solid var(--border) !important;
+    border-left: 4px solid var(--brand-primary) !important;
+    border-top: none !important;
+    margin-left: 0 !important;
+    margin-bottom: 20px !important;
+    padding: 16px 20px !important;
+    color: var(--foreground) !important;
+    border-radius: 0 0 6px 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+/* API Signature Names - Simplified */
+.rst-content .sig-name.descname {
+    color: var(--foreground) !important;
+    font-weight: 700 !important;
+    font-size: 16px !important;
+}
+
+.rst-content dl.class .sig-name.descname {
+    color: var(--api-class-name) !important;
+    font-size: 18px !important;
+}
+
+.rst-content dl.py.property .sig-name.descname,
+.rst-content dl.attribute .sig-name.descname {
+    color: var(--api-property-name) !important;
+    font-size: 16px !important;
+}
+
+/* Property Names (Attributes) */
+.rst-content dl.attribute > dt {
+    display: block !important;
+    line-height: 1.8 !important;
+    color: var(--foreground) !important;
+}
+
+.rst-content dl.attribute > dt .sig-name {
+    color: var(--brand-primary) !important;
+    font-weight: 700 !important;
+    margin-right: 4px !important;
+}
+
+.rst-content dl.attribute > dt .sig-name::after {
+    content: ': ' !important;
+    color: var(--muted-foreground) !important;
+    font-weight: normal !important;
+    margin-right: 8px !important;
+}
+
+/* Parameters - Keep simple */
+.rst-content .sig-param {
+    color: var(--foreground) !important;
+    font-weight: 500 !important;
+    margin-right: 8px !important;
+}
+
+.rst-content .sig-paren {
+    color: var(--muted-foreground) !important;
+}
+
+/* Type Annotations - Subtle styling */
+.rst-content .annotation {
+    color: var(--api-type) !important;
+    font-style: italic !important;
+    font-weight: normal !important;
+}
+
+.rst-content .sig-param + .annotation::before {
+    content: ': ' !important;
+    color: var(--muted-foreground) !important;
+    margin: 0 4px !important;
+}
+
+
+
+/* Property Keywords - Simple styling */
+.rst-content .property {
+    color: var(--api-keyword) !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+}
+
+.rst-content .property.docutils.literal {
+    background: var(--muted) !important;
+    color: var(--api-keyword) !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    margin-right: 8px !important;
+}
+
+/* Field Lists (Parameter Documentation) */
+.rst-content .field-list {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    padding: 12px !important;
+    margin: 12px 0 !important;
+}
+
+.rst-content .field-list .field-name {
+    color: var(--api-parameter) !important;
+    font-weight: 600 !important;
+    width: 120px !important;
+    display: inline-block !important;
+    font-size: 14px !important;
+}
+
+/* Special styling for different field types */
+.rst-content .field-list .field-name:contains("Parameters") {
+    color: var(--api-parameter) !important;
+}
+
+.rst-content .field-list .field-name:contains("Returns") {
+    color: var(--api-return-type) !important;
+}
+
+.rst-content .field-list .field-name:contains("Type") {
+    color: var(--api-type) !important;
+}
+
+.rst-content .field-list .field-body {
+    color: var(--foreground) !important;
+    margin-left: 8px !important;
+}
+
+.rst-content .field-list .field {
+    margin-bottom: 8px !important;
+}
+
+.rst-content .field-list .field:last-child {
+    margin-bottom: 0 !important;
+}
+
+/* General Text Visibility */
+.rst-content p,
+.rst-content li,
+.rst-content div:not([class*="sig"]) {
+    color: var(--foreground) !important;
+}
+
+/* Make only the module path grey */
+.rst-content dt .sig-prename {
+    color: var(--muted-foreground) !important;
+}
+
+/* API signature elements need to override general rules */
+.rst-content dt {
+    color: var(--foreground) !important;
+}
+
+.rst-content dd {
+    color: var(--foreground) !important;
+}
+
+.rst-content dd p {
+    color: var(--foreground) !important;
+    margin-bottom: 8px !important;
+    line-height: 1.6 !important;
+}
+
+.rst-content dl dd > *,
+.rst-content dl dd em,
+.rst-content dl dd strong,
+.rst-content dl dd code,
+.rst-content dl dd .literal {
+    color: inherit !important;
+}
+
+/* ===================================================================
+   TABLES
+   =================================================================== */
+
+.rst-content table.docutils {
+    border: 1px solid var(--border) !important;
+}
+
+.rst-content table.docutils thead {
+    background: var(--secondary) !important;
+}
+
+.rst-content table.docutils thead th {
+    background: var(--secondary) !important;
+    color: var(--foreground) !important;
+    border-bottom: 2px solid var(--brand-primary) !important;
+}
+
+.rst-content table.docutils td,
+.rst-content table.docutils th {
+    border: 1px solid var(--border) !important;
+    color: var(--foreground) !important;
+}
+
+.rst-content table.docutils tbody tr:nth-child(odd) {
+    background: var(--muted) !important;
+}
+
+/* ===================================================================
+   ADMONITIONS & CALLOUTS
+   =================================================================== */
+
+.rst-content .admonition {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--foreground) !important;
+}
+
+.rst-content .admonition .admonition-title {
+    background: var(--brand-primary) !important;
+    color: black !important;
+    font-weight: 600 !important;
+}
+
+.rst-content .note {
+    background: var(--card) !important;
+    border-left: 4px solid var(--brand-primary) !important;
+}
+
+.rst-content .warning {
+    background: var(--card) !important;
+    border-left: 4px solid #F59E0B !important;
+}
+
+.rst-content .important {
+    background: var(--card) !important;
+    border-left: 4px solid var(--brand-secondary) !important;
+}
+
+/* ===================================================================
+   UI COMPONENTS
+   =================================================================== */
+
+/* Buttons */
+.btn {
+    background: var(--brand-primary) !important;
+    color: black !important;
+    border: none !important;
+    font-weight: 600 !important;
+}
+
+.btn:hover {
+    background: #D4E635 !important;
+    color: black !important;
+}
+
+/* Breadcrumbs */
+.wy-breadcrumbs {
+    color: var(--muted-foreground) !important;
+}
+
+.wy-breadcrumbs a {
+    color: var(--link-color) !important;
+}
+
+/* Footer */
+.rst-footer-buttons {
+    border-top: 1px solid var(--border) !important;
+}
+
+/* Search */
+.rst-content .search .highlight {
+    background: var(--brand-primary) !important;
+    color: black !important;
+}
+
+/* Version Selector */
+.rst-versions {
+    background: var(--secondary) !important;
+    border-top: 1px solid var(--border) !important;
+}
+
+.rst-versions a {
+    color: var(--muted-foreground) !important;
+}
+
+.rst-versions a:hover {
+    color: var(--link-color) !important;
+}
+
+/* ===================================================================
+   UTILITY & MISC
+   =================================================================== */
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--brand-accent);
+}
+
+/* Logo */
+.wy-side-nav-search .wy-dropdown > a img.logo,
+.wy-side-nav-search > a img.logo {
+    filter: brightness(0) invert(1) !important;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .wy-nav-side,
+    .wy-nav-top {
+        background: var(--secondary) !important;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .rst-content {
+        background: white !important;
+        color: black !important;
+    }
+
+    .rst-content h1, .rst-content h2, .rst-content h3,
+    .rst-content h4, .rst-content h5, .rst-content h6 {
+        color: black !important;
+    }
+
+    .rst-content a {
+        color: #0066cc !important;
+    }
+}
