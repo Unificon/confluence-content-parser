@@ -4,7 +4,7 @@ Confluence Content Parser Documentation
 A Python library for parsing Atlassian Confluence storage format XML into a structured document tree.
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 2
    :caption: Contents:
 
    installation

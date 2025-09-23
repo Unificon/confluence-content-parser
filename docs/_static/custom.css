@@ -638,11 +638,25 @@ body, .rst-content {
     background: var(--brand-accent);
 }
 
-/* Logo */
-.wy-side-nav-search .wy-dropdown > a img.logo,
-.wy-side-nav-search > a img.logo {
-    filter: brightness(0) invert(1) !important;
+/* Logo - Remove hover effects */
+.wy-side-nav-search .wy-dropdown > a,
+.wy-side-nav-search > a {
+    transition: none !important;
+    border: none !important;
+    background: none !important;
+    box-shadow: none !important;
 }
+
+.wy-side-nav-search .wy-dropdown > a:hover,
+.wy-side-nav-search > a:hover {
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+
 
 /* Responsive */
 @media screen and (max-width: 768px) {
