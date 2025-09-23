@@ -43,15 +43,14 @@ html_theme_options = {
     'canonical_url': '',
     'analytics_id': '',
     'logo_only': False,
-    'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
     'vcs_pageview_mode': '',
-    'style_nav_header_background': 'white',
+    'style_nav_header_background': '#1a1a1a',
     # Toc options
     'collapse_navigation': True,
     'sticky_navigation': True,
-    'navigation_depth': 4,
+    'navigation_depth': 5,
     'includehidden': True,
     'titles_only': False
 }
@@ -61,9 +60,8 @@ html_theme_options = {
 autodoc_default_options = {
     'members': True,
     'member-order': 'bysource',
-    'special-members': '__init__',
     'undoc-members': True,
-    'exclude-members': '__weakref__'
+    'exclude-members': '__weakref__, model_config'
 }
 
 # -- Options for intersphinx extension --------------------------------------
@@ -107,7 +105,9 @@ html_title = f"{project} v{release}"
 html_short_title = project
 
 # Custom CSS
-html_css_files = []
+html_css_files = [
+    'custom.css',
+]
 
 # Custom JavaScript
 html_js_files = []
